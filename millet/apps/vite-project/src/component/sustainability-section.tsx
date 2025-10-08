@@ -17,7 +17,7 @@ export function SustainabilitySection() {
       title: "Eco-friendly packaging",
       description: "Reducing our environmental footprint",
     },
-  ]
+  ] 
 
   return (
     <section className="py-16 lg:py-24 ">

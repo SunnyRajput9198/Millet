@@ -9,6 +9,8 @@
     "check-types": "turbo run check-types"
   },
   "dependencies": {
+    "@prisma/client": "^6.17.0",
+    "prisma": "^6.17.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
