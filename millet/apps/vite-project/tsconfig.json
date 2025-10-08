@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+     "jsx": "react-jsx",
+    "types": ["react", "react-dom"],
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}
