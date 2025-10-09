@@ -1,11 +1,11 @@
 import type { Request } from 'express';
-import { prisma } from '@repo/db/client';
+import { prisma } from '@repo/db/src/index';
 
 export interface AuthRequest extends Request {
   user?: {
     id: string;
     email: string;
-    role: string;
+    role: 'USER' | 'ADMIN';
   };
 }
 

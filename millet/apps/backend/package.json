@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "types": "module",
   "scripts": {
-   "build": "tsc -b",
+    "build": "tsc -b",
     "dev": "npm run build && npm run start",
     "start": "node dist/index.js"
   },
@@ -13,8 +14,30 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@types/express": "^5.0.3",
+    "@prisma/client": "^6.17.0",
+    "@repo/db": "*",
+    "bcryptjs": "^3.0.2",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
     "express": "^5.1.0",
-    "@repo/db": "*"
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "zod": "^3.25.67"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/compression": "^1.8.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/ms": "^2.1.0",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^22.18.8",
+    "nodemon": "^3.1.10",
+    "prisma": "^6.17.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
   }
 }

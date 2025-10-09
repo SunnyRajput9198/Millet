@@ -52,6 +52,7 @@ model User {
   emailVerified     Boolean           @default(false)
   verificationToken String?
   resetToken        String?
+  refreshToken      String?
   resetTokenExpiry  DateTime?
   isActive          Boolean           @default(true)
   avatarUrl         String?
