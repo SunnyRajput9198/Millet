@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import authRouter from './authroutes';
-import productRouter from './product.routes';
-import categoryRouter from './cartroutes';
+import productRouter from './products/route';
+import categoryRouter from './category/route';
 import cartRouter from './cartroutes';
 import addressRouter from './addressroutes';
 

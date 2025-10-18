@@ -70,7 +70,6 @@ model User {
 
 }
 
-
 model Category {
   id           String     @id @default(cuid())
   name         String
@@ -80,7 +79,6 @@ model Category {
   parent       Category?   @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children     Category[]  @relation("CategoryHierarchy")
   image        String?
-  isActive     Boolean     @default(true)
   products     Product[]
 }
 
@@ -99,39 +97,28 @@ model Product {
   id               String           @id @default(cuid())
   name             String
   slug             String           @unique
-  description      String
-  shortDescription String?
-  price            Float
+  description      String?
+  price            Float            @default(0)
   comparePrice     Float?
   stock            Int              @default(0)
   sku              String?          @unique
-  isFeatured       Boolean          @default(false)
-  isActive         Boolean          @default(true)
-  tags             String[]
-  images           ProductImage[]
+  tags             String[]         @default([])
   categoryId       String?
   category         Category?        @relation(fields: [categoryId], references: [id])
-  rating           Float            @default(0)
-  reviewCount      Int              @default(0)
-  metaTitle        String?
-  metaDescription  String?
-  metaKeywords     String[]
   createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
 
+  // Relations
+  images           ProductImage[]
   reviews          Review[]
   variants         ProductVariant[]
-  cartItems        CartItem[]       // ✅ ADD THIS
-  orderItems       OrderItem[]      @relation("ProductOrderItems")  // ✅ YE ADD KARO
-  wishlistItems    Wishlist[]       // ✅ ADD THIS
-  recentlyViewed   RecentlyViewed[] // ✅ ADD THIS
+  cartItems        CartItem[]
+  orderItems       OrderItem[]      @relation("ProductOrderItems")
+  wishlistItems    Wishlist[]
+  recentlyViewed   RecentlyViewed[]
 
-  @@index([isActive])
   @@index([slug])
   @@index([categoryId])
   @@index([price])
-  @@index([isFeatured])
-  
 }
 
 model ProductImage {
@@ -142,18 +129,23 @@ model ProductImage {
   alt         String?
   isPrimary   Boolean  @default(false)
   order       Int      @default(0)
+
+  @@index([productId])
 }
 
 model ProductVariant {
   id          String   @id @default(cuid())
   productId   String
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  name        String
-  price       Float
+  name        String?
+  sku         String?  @unique
+  price       Float?
   stock       Int      @default(0)
-  attributes  Json     // e.g. {"color": "red", "size": "L"}
+  attributes  Json?    @default("{}")
+  createdAt   DateTime @default(now())
+  
+  @@index([productId])
 }
-
 model Address {
   id                String            @id @default(cuid())
   userId            String
