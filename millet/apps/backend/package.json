@@ -2,17 +2,15 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
-  "types": "module",
+  "main": "dist/service.js",
   "scripts": {
     "build": "tsc -b",
     "dev": "npm run build && npm run start",
-    "start": "node dist/index.js"
+    "start": "node dist/service.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module",
   "dependencies": {
     "@prisma/client": "^6.17.0",
     "@repo/db": "*",

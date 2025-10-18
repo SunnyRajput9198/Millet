@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { User } from '@prisma/client';
-import { prisma, Prisma } from '@repo/db/src/index';
+import type { User } from '@repo/db';
+import { prisma, Prisma } from '@repo/db';
 import { ApiError } from '../utils/Api';
 import jwt from 'jsonwebtoken';
 import { env } from '../config'; // Apne config file ka sahi path daalein

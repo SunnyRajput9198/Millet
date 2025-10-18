@@ -1,4 +1,4 @@
-import { Prisma } from "@repo/db/src/index"
+import { Prisma } from "@repo/db"
 
 class ApiFeatures<T extends { findMany: (args: any) => Promise<any[]> }> {
   public query: T;

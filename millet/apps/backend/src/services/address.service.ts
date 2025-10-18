@@ -1,6 +1,6 @@
-import {prisma }from '@repo/db/src/index';
+import {prisma }from '@repo/db';
 import { ApiError } from '../utils/Api';
-import { Address } from '@prisma/client';
+import type { Address } from '@repo/db'; // Change this line
 
 export const addAddress = async (userId: string, data: Omit<Address, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
   return prisma.address.create({

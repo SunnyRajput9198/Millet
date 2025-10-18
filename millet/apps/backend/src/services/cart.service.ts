@@ -1,4 +1,4 @@
-import {prisma} from '@repo/db/src/index';
+import {prisma} from '@repo/db';
 import { ApiError } from '../utils/Api';
 
 const getCartWithDetails = (cartId: string) => {

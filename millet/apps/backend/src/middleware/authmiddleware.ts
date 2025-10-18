@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { asyncHandler } from '../utils/Api';
 import { ApiError } from '../utils/Api';
-import { prisma } from '@repo/db/src/index';
+import { prisma } from '@repo/db';
 import { env } from '../config/index.js';
 
 export const protect = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {

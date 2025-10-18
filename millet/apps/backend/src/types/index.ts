@@ -1,5 +1,5 @@
 import type { Request } from 'express';
-import { prisma } from '@repo/db/src/index';
+import { prisma } from '@repo/db';
 
 export interface AuthRequest extends Request {
   user?: {
