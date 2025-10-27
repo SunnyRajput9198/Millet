@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { prisma } from "@repo/db";
+import { protect, admin } from "../../middleware/authmiddleware"; // ← Add this import
 
 const router = Router({ mergeParams: true });
 
@@ -38,6 +39,8 @@ const updateImageSchema = z.object({
  */
 router.post(
   "/",
+  protect,
+  admin,
   asyncHandler(async (req, res) => {
     const productId = req.params.productId;
 
@@ -84,6 +87,8 @@ router.post(
  */
 router.patch(
   "/:imageId",
+  protect,
+  admin,
   asyncHandler(async (req, res) => {
     const { productId, imageId } = req.params;
 
@@ -124,6 +129,8 @@ router.patch(
  */
 router.delete(
   "/:imageId",
+  protect,
+  admin,
   asyncHandler(async (req, res) => {
     const { productId, imageId } = req.params;
 

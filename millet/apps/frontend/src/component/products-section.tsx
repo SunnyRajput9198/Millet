@@ -5,6 +5,7 @@ import { Card, CardContent } from "../components/ui/card";
 import { Star, ShoppingCart, ArrowRight } from "lucide-react";
 import { productAPI, type Product } from "../api/products";
 import { categoryAPI, type Category } from "../api/categories";
+import AddProductModal from "./Addmodelproduct";
 
 export function ProductsSection() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -12,6 +13,12 @@ export function ProductsSection() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+
+  // Show only 4 products initially (+ 1 coming soon card = 5 total)
+  const INITIAL_DISPLAY_COUNT = 4;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -19,7 +26,6 @@ export function ProductsSection() {
         setLoading(true);
         setError(null);
 
-        // Fetch both products and categories
         const [productsResponse, categoriesData] = await Promise.all([
           productAPI.getAll(),
           categoryAPI.getAll(),
@@ -36,13 +42,36 @@ export function ProductsSection() {
     };
 
     fetchData();
+    checkAdminStatus();
   }, []);
 
-  // Filter products by category
+  const checkAdminStatus = async () => {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        setIsAdmin(false);
+        return;
+      }
+      const response = await fetch("http://localhost:8000/api/v1/auth/me", {
+        headers: { "Authorization": `Bearer ${accessToken}` }
+      });
+      const data = await response.json();
+      if (data.success && data.data.role === "ADMIN") {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+      }
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+      setIsAdmin(false);
+    }
+  };
+
   const handleCategoryFilter = async (categorySlug: string | null) => {
     try {
       setLoading(true);
       setSelectedCategory(categorySlug);
+      setShowAll(false); // Reset to showing limited products
 
       if (categorySlug) {
         const response = await productAPI.getByCategory(categorySlug);
@@ -58,6 +87,10 @@ export function ProductsSection() {
       setLoading(false);
     }
   };
+
+  // Get products to display
+  const displayedProducts = showAll ? products : products.slice(0, INITIAL_DISPLAY_COUNT);
+  const hasMoreProducts = products.length > INITIAL_DISPLAY_COUNT;
 
   if (loading) {
     return (
@@ -135,7 +168,7 @@ export function ProductsSection() {
 
         {/* Products Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-          {products.map((product) => (
+          {displayedProducts.map((product) => (
             <Card
               key={product.id}
               className="group hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col"
@@ -217,18 +250,31 @@ export function ProductsSection() {
             </Card>
           ))}
 
-          {/* Coming Soon Card */}
-          <Card className="group flex flex-col overflow-hidden rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer">
+          {/* Coming Soon / Add Product Card */}
+          <Card 
+            className="group flex flex-col overflow-hidden rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer"
+            onClick={() => {
+              if (isAdmin) {
+                setIsModalOpen(true);
+              }
+            }}
+          >
             <CardContent className="flex flex-col items-center justify-center p-8 flex-grow">
-              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#F4C542] to-[#FFB74D] text-white text-3xl font-bold mb-4 shadow-lg group-hover:scale-105 transition-transform duration-300">
+              <div className={`flex items-center justify-center w-16 h-16 rounded-full ${
+                isAdmin 
+                  ? 'bg-gradient-to-br from-[#2a9d8f] to-[#264653]' 
+                  : 'bg-gradient-to-br from-[#F4C542] to-[#FFB74D]'
+              } text-white text-3xl font-bold mb-4 shadow-lg group-hover:scale-105 transition-transform duration-300`}>
                 +
               </div>
               <div className="text-[#264653] font-semibold text-lg mb-1">
-                Coming Soon
+                {isAdmin ? 'Add New Product' : 'Coming Soon'}
               </div>
               <p className="text-[#39485C] mt-2 text-sm text-center max-w-xs">
-                More delicious snacks are on the way! Stay tuned for exciting new
-                flavors.
+                {isAdmin 
+                  ? 'Click here to add a new product with images and details'
+                  : 'More delicious snacks are on the way! Stay tuned for exciting new flavors.'
+                }
               </p>
             </CardContent>
           </Card>
@@ -236,16 +282,38 @@ export function ProductsSection() {
 
         {/* CTA Button */}
         <div className="text-center mt-12">
-          <Button
-            size="lg"
-            variant="outline"
-            className="border-[#2a9d8f] text-[#2a9d8f] hover:bg-[#2a9d8f] hover:text-white transition-colors duration-300"
-          >
-            Explore All Products
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
+          {!showAll && hasMoreProducts ? (
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => setShowAll(true)}
+              className="border-[#2a9d8f] text-[#2a9d8f] hover:bg-[#2a9d8f] hover:text-white transition-colors duration-300"
+            >
+              Explore All Products ({products.length - INITIAL_DISPLAY_COUNT} more)
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          ) : showAll ? (
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => {
+                setShowAll(false);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="border-[#2a9d8f] text-[#2a9d8f] hover:bg-[#2a9d8f] hover:text-white transition-colors duration-300"
+            >
+              Show Less
+              <ArrowRight className="w-4 h-4 ml-2 rotate-180" />
+            </Button>
+          ) : null}
         </div>
       </div>
+
+      {/* Add Product Modal */}
+      <AddProductModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </section>
   );
 }

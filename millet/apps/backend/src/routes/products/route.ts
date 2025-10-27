@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@repo/db";
 import imageRouter from "./image";
 import variantRouter from "./varient";
-
+import { protect, admin } from "../../middleware/authmiddleware"; // ← Add this import
 const router = Router();
 
 const asyncHandler =
@@ -162,6 +162,8 @@ router.get(
 // POST /api/v1/products
 router.post(
   "/",
+  protect,
+  admin,
   asyncHandler(async (req, res) => {
     const validated = createProductSchema.parse(req.body);
     const slug = generateSlug(validated.name);
@@ -246,6 +248,8 @@ router.get(
 // PATCH /api/v1/products/:id
 router.patch(
   "/:id",
+  protect,
+  admin,
   asyncHandler(async (req, res) => {
     const id = req.params.id;
     
@@ -297,6 +301,8 @@ router.patch(
 // DELETE /api/v1/products/:id
 router.delete(
   "/:id",
+  protect,
+  admin,
   asyncHandler(async (req, res) => {
     const id = req.params.id;
     

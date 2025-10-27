@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { prisma } from "@repo/db";
-
+import { protect, admin } from "../../middleware/authmiddleware"; // ← Add this import
 const router = Router({ mergeParams: true });
 
 const asyncHandler =
@@ -20,6 +20,8 @@ const variantSchema = z.object({
 // POST /api/v1/products/:productId/variants
 router.post(
   "/",
+  protect,
+  admin,
   asyncHandler(async (req, res) => {
     const productId = req.params.productId;
     if (!productId) {
@@ -51,6 +53,9 @@ router.post(
 // PATCH /api/v1/products/:productId/variants/:variantId
 router.patch(
   "/:variantId",
+
+  protect,
+  admin,
   asyncHandler(async (req, res) => {
     const { variantId } = req.params;
     if (!variantId) {
@@ -82,6 +87,8 @@ router.patch(
 // DELETE /api/v1/products/:productId/variants/:variantId
 router.delete(
   "/:variantId",
+  protect,
+  admin,
   asyncHandler(async (req, res) => {
     const { variantId } = req.params;
     if (!variantId) {

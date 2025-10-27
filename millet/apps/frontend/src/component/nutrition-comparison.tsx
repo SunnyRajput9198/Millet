@@ -19,7 +19,7 @@ export function NutritionComparison() {
         {/* Heading */}
         <div className="text-center mb-16 space-y-4">
           <h2 className="font-playfair text-3xl lg:text-4xl font-bold text-[#264653]">
-            Why Nutritionists Recommend Makhana
+            Why Nutritionists Recommend Millet Products
           </h2>
           <p className="text-lg text-[#39485C] max-w-2xl mx-auto">
             The ancient superfood your modern lifestyle needs
@@ -47,7 +47,7 @@ export function NutritionComparison() {
                 <Badge className="mb-4 bg-[#264653] text-white px-4 py-2 rounded-full shadow-lg">
                   High Glycemic
                 </Badge>
-                <h3 className="text-2xl font-bold mb-2 text-[#264653]">Potato Chips</h3>
+                <h3 className="text-2xl font-bold mb-2 text-[#264653]">Potato Chips/Kurkure</h3>
                 <p className="text-[#39485C]">Processed Snacks</p>
               </div>
             </div>
@@ -56,7 +56,7 @@ export function NutritionComparison() {
             <div className="space-y-4">
               <div className="text-center mb-6">
                 <h4 className="text-lg font-semibold text-[#264653]">
-                  How Suvria Fox Nuts Compare
+                  How Millet Fox Nuts Compare
                 </h4>
               </div>
 

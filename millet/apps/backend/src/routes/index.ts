@@ -7,7 +7,10 @@ import addressRouter from './address/route';
 import orderRouter from './order/route';
 import wishlistRouter from './wishlist/route';
 import reviewsRouter from './reviews/route';
-import { app } from '../app';
+import couponRouter from './coupon/route';
+import notificationRouter from './notification/route';
+import shipmentRouter from './shipment/route';
+import recentlyViewedRoute from './recently-viewed/route'
 
 const router = Router();
 
@@ -18,7 +21,11 @@ router.use('/categories', categoryRouter);
 router.use('/cart', cartRouter);
 router.use('/orders', orderRouter);
 router.use('/wishlist', wishlistRouter);
-router.use('/reviews', reviewsRouter); 
+router.use('/', reviewsRouter); 
+router.use('/recently-viewed', recentlyViewedRoute);
+router.use('/shipments', shipmentRouter);
+router.use('/notifications', notificationRouter);
+router.use('/coupons', couponRouter);
 router.use('/addresses', addressRouter);
 
 export default router;

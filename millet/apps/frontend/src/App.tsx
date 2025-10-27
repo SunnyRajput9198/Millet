@@ -16,6 +16,7 @@ export default function HomePage() {
         <HeroSection />
         <FeaturesSection />
         <DifferenceSection />
+        
         <BenefitsSection />
         <ProductsSection />
         <SustainabilitySection />

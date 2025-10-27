@@ -34,7 +34,7 @@ export function HeroSection() {
                 Premium Organic Makhana
               </Badge>
               <h1 className="font-playfair text-4xl lg:text-6xl font-bold text-balance leading-tight">
-                Healthy Snacking, <span className="text-[#2a9d8f]">Purely Natural</span> – Without Compromising
+                Healthy Snacking, <span className="text-[#2a9d8f]"> Wholesome goodness powered by nature</span> – Without Compromising
                 <span className="text-[#2a9d8f]"> Taste</span>
               </h1>
               <p className="text-lg text-[#39485C] text-pretty max-w-2xl">

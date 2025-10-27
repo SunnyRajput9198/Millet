@@ -4,9 +4,9 @@ import { useState } from "react"
 import { Link } from "react-router-dom"
 import { Button } from "../components/ui/button"
 import { Badge } from "../components/ui/badge"
-import { ShoppingCart, Search, Menu, X, User, Heart, Leaf } from "lucide-react"
+import { ShoppingCart, Search, Menu, X, User, Heart } from "lucide-react"
 
-export function Header() {
+export function Header() { 
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   return (
@@ -16,7 +16,7 @@ export function Header() {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <div className="flex items-center justify-center w-10 h-10 bg-primary rounded-full">
-              <Leaf className="h-6 w-6 text-primary-foreground" />
+               <img src="/keithson.jpg" alt="Nature Millets Logo" className="w-8 h-8 object-contain" />
             </div>
             <div className="flex flex-col">
               <span className="font-playfair text-xl font-bold text-foreground">Nature Millets</span>
@@ -30,7 +30,7 @@ export function Header() {
               Home
             </Link>
             <Link to="/products" className="text-sm font-medium hover:text-primary transition-colors">
-              Products
+          
             </Link>
             <Link to="/about" className="text-sm font-medium hover:text-primary transition-colors">
               About Us
@@ -57,7 +57,7 @@ export function Header() {
             <Button variant="ghost" size="sm" className="relative">
               <ShoppingCart className="h-4 w-4" />
               <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                2
+                3
               </Badge>
             </Button>
           </div>
