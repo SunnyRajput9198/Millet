@@ -6,6 +6,7 @@ import { BenefitsSection } from "./component/benefits-section"
 import { ProductsSection } from "./component/products-section"
 import { SustainabilitySection } from "./component/sustainability-section"
 import { NutritionComparison } from "./component/nutrition-comparison"
+import { CategorySection } from "./component/category-section"
 import { Footer } from "./component/footer"
 
 export default function HomePage() {
@@ -14,9 +15,9 @@ export default function HomePage() {
       <Header />
       <main>
         <HeroSection />
+        <CategorySection />
         <FeaturesSection />
         <DifferenceSection />
-        
         <BenefitsSection />
         <ProductsSection />
         <SustainabilitySection />
