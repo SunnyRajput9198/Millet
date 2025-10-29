@@ -1,29 +1,16 @@
-import { Header } from "./component/header"
-import { HeroSection } from "./component/hero-section"
-import { FeaturesSection } from "./component/feature-section"
-import { DifferenceSection } from "./component/difference-section"
-import { BenefitsSection } from "./component/benefits-section"
-import { ProductsSection } from "./component/products-section"
-import { SustainabilitySection } from "./component/sustainability-section"
-import { NutritionComparison } from "./component/nutrition-comparison"
-import { CategorySection } from "./component/category-section"
-import { Footer } from "./component/footer"
+import { Routes, Route } from "react-router-dom"
+import HomePage from "./pages/Homepage"
+import AuthPage from "./pages/auth-page"
+import ProfilePage from "./pages/Profilepage"
 
-export default function HomePage() {
+function App() {
   return (
-    <div className="min-h-screen ">
-      <Header />
-      <main>
-        <HeroSection />
-        <CategorySection />
-        <FeaturesSection />
-        <DifferenceSection />
-        <BenefitsSection />
-        <ProductsSection />
-        <SustainabilitySection />
-        <NutritionComparison />
-      </main>
-      <Footer />
-    </div>
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/auth" element={<AuthPage />} />
+      <Route path="/profile" element={<ProfilePage />} /> 
+    </Routes>
   )
 }
+
+export default App

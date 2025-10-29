@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, Upload, Plus, Trash2, Image } from "lucide-react";
-
+ import { getValidAccessToken } from '../utils/tokenRefresh'
 interface Category {
   id: string;
   name: string;
@@ -49,7 +49,7 @@ export default function AddProductModal({ isOpen, onClose }: AddProductModalProp
 
   const checkAdminStatus = async () => {
     try {
-      const accessToken = localStorage.getItem('accessToken');
+      const accessToken = await getValidAccessToken() // Changed this line
       if (!accessToken) {
         setIsAdmin(false);
         return;
@@ -133,62 +133,78 @@ export default function AddProductModal({ isOpen, onClose }: AddProductModalProp
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
-    setLoading(true);
-    setSuccessMessage("");
+const handleSubmit = async () => {
+  
+  if (!validateForm()) return;
+  setLoading(true);
+  setSuccessMessage("");
 
-    try {
-      const productPayload = {
-        name: formData.name,
-        description: formData.description || undefined,
-        price: parseFloat(formData.price),
-        comparePrice: formData.comparePrice ? parseFloat(formData.comparePrice) : undefined,
-        stock: parseInt(formData.stock),
-        sku: formData.sku || undefined,
-        categoryId: formData.categoryId || undefined,
-        tags: formData.tags ? formData.tags.split(",").map(tag => tag.trim()) : undefined,
-      };
-
-      const productResponse = await fetch("http://localhost:8000/api/v1/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(productPayload),
-      });
-
-      const productData = await productResponse.json();
-      if (!productResponse.ok || !productData.success) {
-        throw new Error(productData.message || "Failed to create product");
-      }
-
-      const productId = productData.data.id;
-      const validImages = images.filter(img => img.url.trim());
-      
-      for (const image of validImages) {
-        await fetch(`http://localhost:8000/api/v1/products/${productId}/images`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            url: image.url,
-            alt: image.alt || formData.name,
-            isPrimary: image.isPrimary,
-            order: image.order,
-          }),
-        });
-      }
-
-      setSuccessMessage("Product added successfully! 🎉");
-      setTimeout(() => {
-        resetForm();
-        onClose();
-        window.location.reload();
-      }, 2000);
-    } catch (error: any) {
-      setErrors({ submit: error.message || "Failed to add product" });
-    } finally {
-      setLoading(false);
+  try {
+    // Get the access token from localStorage
+  const accessToken = await getValidAccessToken() // Changed this line
+    
+    if (!accessToken) {
+      throw new Error("You must be logged in to add products");
     }
-  };
+
+    const productPayload = {
+      name: formData.name,
+      description: formData.description || undefined,
+      price: parseFloat(formData.price),
+      comparePrice: formData.comparePrice ? parseFloat(formData.comparePrice) : undefined,
+      stock: parseInt(formData.stock),
+      sku: formData.sku || undefined,
+      categoryId: formData.categoryId || undefined,
+      tags: formData.tags ? formData.tags.split(",").map(tag => tag.trim()) : undefined,
+    };
+
+    // ADD AUTHORIZATION HEADER HERE
+    const productResponse = await fetch("http://localhost:8000/api/v1/products", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}` // ⭐ ADD THIS LINE
+      },
+      body: JSON.stringify(productPayload),
+    });
+
+    const productData = await productResponse.json();
+    if (!productResponse.ok || !productData.success) {
+      throw new Error(productData.message || "Failed to create product");
+    }
+
+    const productId = productData.data.id;
+    const validImages = images.filter(img => img.url.trim());
+    
+    // ALSO ADD AUTHORIZATION TO IMAGE UPLOADS
+    for (const image of validImages) {
+      await fetch(`http://localhost:8000/api/v1/products/${productId}/images`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}` // ⭐ ADD THIS LINE TOO
+        },
+        body: JSON.stringify({
+          url: image.url,
+          alt: image.alt || formData.name,
+          isPrimary: image.isPrimary,
+          order: image.order,
+        }),
+      });
+    }
+
+    setSuccessMessage("Product added successfully! 🎉");
+    setTimeout(() => {
+      resetForm();
+      onClose();
+      window.location.reload();
+    }, 2000);
+  } catch (error: any) {
+    setErrors({ submit: error.message || "Failed to add product" });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const resetForm = () => {
     setFormData({ name: "", description: "", price: "", comparePrice: "", stock: "", sku: "", categoryId: "", tags: "" });

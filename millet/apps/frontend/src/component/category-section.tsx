@@ -2,7 +2,8 @@
 
 import { motion } from "framer-motion"
 import { useEffect, useState } from "react"
-
+import AddCategoryModal from "./Addcategorymodel"
+ import { getValidAccessToken } from '../utils/tokenRefresh'
 interface Category {
   id: string
   name: string
@@ -17,33 +18,63 @@ export function CategorySection() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showAll, setShowAll] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch("http://localhost:8000/api/v1/categories")
-        
-        if (!response.ok) {
-          throw new Error("Failed to fetch categories")
-        }
+    fetchCategories()
+    checkAdminStatus()
+  }, [])
 
-        const result = await response.json()
-        
-        if (result.success && result.data) {
-          // Filter only parent categories (no parentId)
-          const parentCategories = result.data.filter((cat: any) => !cat.parentId)
-          setCategories(parentCategories)
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred")
-        console.error("Error fetching categories:", err)
-      } finally {
-        setLoading(false)
-      }
+
+
+const checkAdminStatus = async () => {
+  try {
+    const accessToken = await getValidAccessToken()
+    
+    if (!accessToken) {
+      setIsAdmin(false)
+      return
     }
 
-    fetchCategories()
-  }, [])
+    const response = await fetch("http://localhost:8000/api/v1/auth/me", {
+      headers: { "Authorization": `Bearer ${accessToken}` }
+    })
+    
+    const data = await response.json()
+    
+    if (data.success && data.data.role === "ADMIN") {
+      setIsAdmin(true)
+    } else {
+      setIsAdmin(false)
+    }
+  } catch (error) {
+    console.error("Error checking admin status:", error)
+    setIsAdmin(false)
+  }
+}
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch("http://localhost:8000/api/v1/categories")
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch categories")
+      }
+
+      const result = await response.json()
+      
+      if (result.success && result.data) {
+        const parentCategories = result.data.filter((cat: any) => !cat.parentId)
+        setCategories(parentCategories)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred")
+      console.error("Error fetching categories:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const fadeUp = {
     hidden: { opacity: 0, y: 40 },
@@ -58,7 +89,6 @@ export function CategorySection() {
     }),
   }
 
-  // Display only first 3 categories unless showAll is true
   const displayedCategories = showAll ? categories : categories.slice(0, 3)
   const hasMoreCategories = categories.length > 3
 
@@ -100,16 +130,6 @@ export function CategorySection() {
     )
   }
 
-  if (categories.length === 0) {
-    return (
-      <section className="py-20 bg-gradient-to-b from-white via-green-50/20 to-white">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-gray-600 text-lg">No categories available yet.</p>
-        </div>
-      </section>
-    )
-  }
-
   return (
     <section className="py-20 bg-gradient-to-b from-white via-green-50/20 to-white">
       <div className="max-w-7xl mx-auto px-6">
@@ -130,6 +150,7 @@ export function CategorySection() {
               custom={i}
               initial="hidden"
               whileInView="visible"
+              // @ts-ignore
               variants={fadeUp}
               viewport={{ once: true }}
               className="group relative rounded-3xl overflow-hidden bg-white shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
@@ -161,9 +182,34 @@ export function CategorySection() {
               </div>
             </motion.div>
           ))}
+
+          {/* Add Category Card - ONLY VISIBLE TO ADMINS */}
+          {isAdmin && (
+            <motion.div
+              custom={displayedCategories.length}
+              initial="hidden"
+              whileInView="visible"
+              // @ts-ignore
+              variants={fadeUp}
+              viewport={{ once: true }}
+              onClick={() => setIsModalOpen(true)}
+              className="group relative rounded-3xl overflow-hidden bg-white shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer hover:-translate-y-2"
+            >
+              <div className="flex flex-col items-center justify-center p-12 h-full min-h-[400px]">
+                <div className="flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-green-500 to-green-700 text-white text-4xl font-bold mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  +
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  Add New Category
+                </h3>
+                <p className="text-gray-600 text-sm text-center max-w-xs">
+                  Click here to add a new category with images and details
+                </p>
+              </div>
+            </motion.div>
+          )}
         </div>
 
-        {/* Show More / Show Less Button */}
         {hasMoreCategories && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -192,6 +238,14 @@ export function CategorySection() {
           </motion.div>
         )}
       </div>
+
+      {/* Add Category Modal */}
+      {isAdmin && (
+        <AddCategoryModal 
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
     </section>
   )
 }

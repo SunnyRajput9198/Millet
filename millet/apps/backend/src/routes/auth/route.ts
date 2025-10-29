@@ -289,6 +289,63 @@ router.get(
     });
   })
 );
+// PATCH /api/v1/auth/me - Update current user profile
+router.patch(
+  "/me",
+  protect,
+  asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      throw new ApiError(401, "User not authenticated");
+    }
+
+    const { username, phone, dateOfBirth } = req.body;
+
+    // Build update data object
+    const updateData: any = {};
+
+    if (username !== undefined) {
+      if (username.trim().length < 2) {
+        throw new ApiError(400, "Username must be at least 2 characters");
+      }
+      updateData.username = username.trim();
+    }
+
+    if (phone !== undefined) {
+      updateData.phone = phone.trim() || null;
+    }
+
+    if (dateOfBirth !== undefined) {
+      updateData.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
+    }
+
+    // Update user
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        phone: true,
+        role: true,
+        emailVerified: true,
+        isActive: true,
+        avatarUrl: true,
+        dateOfBirth: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: "Profile updated successfully",
+      data: user,
+    });
+  })
+);
 // Temporary - make user admin (REMOVE IN PRODUCTION!)
 router.patch("/make-admin", protect, asyncHandler(async (req, res) => {
   const userId = req.user?.id;
