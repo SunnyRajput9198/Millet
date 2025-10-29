@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { User, Mail, Phone, Calendar, MapPin, Edit2, Save, X, Shield, Package, Heart, Clock } from "lucide-react"
+import { User, Mail, Phone, Calendar, Edit2, Save, X, Shield, Package, Heart, Clock, MapPin } from "lucide-react"
 import { getValidAccessToken } from "../utils/tokenRefresh"
 
 interface UserProfile {
@@ -105,7 +105,6 @@ export function ProfilePage() {
         setEditing(false)
         fetchUserProfile()
         
-        // Update localStorage user data
         const storedUser = localStorage.getItem("user")
         if (storedUser) {
           const userData = JSON.parse(storedUser)
@@ -167,7 +166,6 @@ export function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white">
-      {/* Header */}
       <div className="bg-gradient-to-r from-green-600 to-green-700 text-white py-8">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex items-center justify-between">
@@ -186,7 +184,6 @@ export function ProfilePage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Success/Error Messages */}
         {success && (
           <div className="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
             {success}
@@ -199,7 +196,6 @@ export function ProfilePage() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Profile Card */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg p-6 text-center">
               <div className="w-32 h-32 bg-gradient-to-br from-green-500 to-green-700 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -241,10 +237,13 @@ export function ProfilePage() {
               </div>
             </div>
 
-            {/* Quick Links */}
             <div className="bg-white rounded-2xl shadow-lg p-6 mt-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Links</h3>
               <div className="space-y-2">
+                <a href="/addresses" className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition">
+                  <MapPin className="w-5 h-5 text-green-600" />
+                  <span className="text-gray-700">My Addresses</span>
+                </a>
                 <a href="/orders" className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition">
                   <Package className="w-5 h-5 text-green-600" />
                   <span className="text-gray-700">My Orders</span>
@@ -261,7 +260,6 @@ export function ProfilePage() {
             </div>
           </div>
 
-          {/* Right Column - Profile Details */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <div className="flex items-center justify-between mb-6">
@@ -296,7 +294,6 @@ export function ProfilePage() {
               </div>
 
               <div className="space-y-6">
-                {/* Username */}
                 <div>
                   <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
                     <User className="w-4 h-4" />
@@ -318,7 +315,6 @@ export function ProfilePage() {
                   )}
                 </div>
 
-                {/* Email (Read-only) */}
                 <div>
                   <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
                     <Mail className="w-4 h-4" />
@@ -330,7 +326,6 @@ export function ProfilePage() {
                   </div>
                 </div>
 
-                {/* Phone */}
                 <div>
                   <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
                     <Phone className="w-4 h-4" />
@@ -352,7 +347,6 @@ export function ProfilePage() {
                   )}
                 </div>
 
-                {/* Date of Birth */}
                 <div>
                   <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
                     <Calendar className="w-4 h-4" />
@@ -375,7 +369,6 @@ export function ProfilePage() {
               </div>
             </div>
 
-            {/* Admin Section */}
             {user.role === "ADMIN" && (
               <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-2xl shadow-lg p-6 mt-6 text-white">
                 <div className="flex items-center space-x-3 mb-4">

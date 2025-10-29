@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { X, Upload, Plus, Image } from "lucide-react"
+import { X, Upload } from "lucide-react"
 import { getValidAccessToken } from '../utils/tokenRefresh'
 
 interface Category {
