@@ -28,6 +28,43 @@ router.get(
   })
 );
 
+// ⚠️ IMPORTANT: This must come BEFORE /:key route
+// GET /api/v1/settings/group/:group - Get all settings by group
+router.get(
+  "/group/:group",
+  protect,
+  asyncHandler(async (req: Request, res: Response) => {
+    const { group } = req.params;
+
+    if (!group) {
+      throw new ApiError(400, "Setting group is required");
+    }
+
+    // Validate group
+    const validGroups = ["GENERAL", "PAYMENT", "SHIPPING", "EMAIL"];
+    if (!validGroups.includes(group.toUpperCase())) {
+      throw new ApiError(
+        400,
+        `Invalid group. Must be one of: ${validGroups.join(", ")}`
+      );
+    }
+
+    const settings = await prisma.setting.findMany({
+      where: { group: group.toUpperCase() },
+      orderBy: { key: "asc" },
+    });
+
+    res.json({
+      success: true,
+      message: `${group} settings retrieved successfully`,
+      data: {
+        settings,
+        count: settings.length,
+      },
+    });
+  })
+);
+
 // GET /api/v1/settings/:key - Get setting by key
 router.get(
   "/:key",
@@ -185,42 +222,6 @@ router.delete(
     res.json({
       success: true,
       message: "Setting deleted successfully",
-    });
-  })
-);
-
-// GET /api/v1/settings/group/:group - Get all settings by group
-router.get(
-  "/group/:group",
-  protect,
-  asyncHandler(async (req: Request, res: Response) => {
-    const { group } = req.params;
-
-    if (!group) {
-      throw new ApiError(400, "Setting group is required");
-    }
-
-    // Validate group
-    const validGroups = ["GENERAL", "PAYMENT", "SHIPPING", "EMAIL"];
-    if (!validGroups.includes(group.toUpperCase())) {
-      throw new ApiError(
-        400,
-        `Invalid group. Must be one of: ${validGroups.join(", ")}`
-      );
-    }
-
-    const settings = await prisma.setting.findMany({
-      where: { group: group.toUpperCase() },
-      orderBy: { key: "asc" },
-    });
-
-    res.json({
-      success: true,
-      message: `${group} settings retrieved successfully`,
-      data: {
-        settings,
-        count: settings.length,
-      },
     });
   })
 );

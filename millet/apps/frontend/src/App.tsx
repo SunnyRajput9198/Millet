@@ -8,6 +8,9 @@ import Recentlyviewed from "./pages/Recentlyviewedpage"
 import Product from "./pages/product"
 import CartPage from "./pages/cart-page"
 import Notification from "./pages/Notification-page"
+import SettingPage from "./pages/settingpage"
+import MyReviews from "./pages/Reviewpage"
+import ProductDetail from "./pages/productdetail"
 function App() {
   return (
     <Routes>
@@ -18,8 +21,11 @@ function App() {
       <Route path="/wishlist" element={<Wishlist />} />
       <Route path="/recently-viewed" element={<Recentlyviewed />} />
       <Route path="/products" element={<Product />} />
+      <Route path="/product/:slug" element={<ProductDetail />} />
       <Route path="/cart" element={<CartPage />} />
       <Route path="/notifications" element={<Notification />} />
+      <Route path="/settings" element={<SettingPage />} />
+      <Route path="/my-reviews" element={<MyReviews />} />
     </Routes>
   )
 }

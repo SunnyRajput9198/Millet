@@ -2,6 +2,38 @@ import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
+// Image interface for product images
+export interface ProductImage {
+  id: string;
+  url: string;
+  alt?: string;
+  isPrimary: boolean;
+  order: number;
+}
+
+// Review interface
+export interface ProductReview {
+  id: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+  user: {
+    id: string;
+    username: string;
+    avatarUrl?: string;
+  };
+}
+
+// Variant interface
+export interface ProductVariant {
+  id: string;
+  name?: string;
+  sku?: string;
+  price?: number;
+  stock?: number;
+  attributes?: Record<string, any>;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -18,6 +50,17 @@ export interface Product {
   sku?: string;
   badge?: string;
   shortDescription?: string;
+  images?: ProductImage[]; // Added images array
+  fullDetails?: {
+    description?: string;
+    images?: ProductImage[];
+    category?: any;
+    variants?: ProductVariant[];
+    reviews?: ProductReview[];
+    stock?: number;
+    sku?: string;
+    tags?: string[];
+  };
 }
 
 export const productAPI = {
@@ -38,7 +81,13 @@ export const productAPI = {
     return response.data;
   },
 
-  // Get single product by slug
+  // Get single product by slug (Added this method)
+  getBySlug: async (slug: string): Promise<{ success: boolean; message: string; data: Product }> => {
+    const response = await axios.get(`${API_URL}/products/${slug}`);
+    return response.data;
+  },
+
+  // Get single product by slug (keeping both for compatibility)
   getOne: async (slug: string): Promise<{ success: boolean; message: string; data: Product }> => {
     const response = await axios.get(`${API_URL}/products/${slug}`);
     return response.data;

@@ -1,6 +1,7 @@
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "../components/ui/card";
 import { Star, ShoppingCart, ArrowRight } from "lucide-react";
 import { productAPI, type Product } from "../api/products";
@@ -8,6 +9,7 @@ import { categoryAPI, type Category } from "../api/categories";
 import AddProductModal from "./Addmodelproduct";
 
 export function ProductsSection() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -17,7 +19,6 @@ export function ProductsSection() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
-  // Show only 4 products initially (+ 1 coming soon card = 5 total)
   const INITIAL_DISPLAY_COUNT = 4;
 
   useEffect(() => {
@@ -71,7 +72,7 @@ export function ProductsSection() {
     try {
       setLoading(true);
       setSelectedCategory(categorySlug);
-      setShowAll(false); // Reset to showing limited products
+      setShowAll(false);
 
       if (categorySlug) {
         const response = await productAPI.getByCategory(categorySlug);
@@ -88,7 +89,10 @@ export function ProductsSection() {
     }
   };
 
-  // Get products to display
+  const handleProductClick = (productSlug: string) => {
+    navigate(`/product/${productSlug}`);
+  };
+
   const displayedProducts = showAll ? products : products.slice(0, INITIAL_DISPLAY_COUNT);
   const hasMoreProducts = products.length > INITIAL_DISPLAY_COUNT;
 
@@ -125,7 +129,6 @@ export function ProductsSection() {
   return (
     <section className="py-15 bg-[#d97706]/30">
       <div className="container mx-auto px-6 sm:px-12 lg:px-24">
-        {/* Heading */}
         <div className="text-center mb-16 space-y-4">
           <h2 className="font-playfair text-3xl lg:text-4xl font-bold text-[#264653]">
             Our Product Portfolio
@@ -135,7 +138,6 @@ export function ProductsSection() {
           </p>
         </div>
 
-        {/* Category Filter */}
         {categories.length > 0 && (
           <div className="flex flex-wrap justify-center gap-3 mb-12">
             <Button
@@ -166,12 +168,12 @@ export function ProductsSection() {
           </div>
         )}
 
-        {/* Products Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
           {displayedProducts.map((product) => (
             <Card
               key={product.id}
-              className="group hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col"
+              onClick={() => handleProductClick(product.slug)}
+              className="group hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col cursor-pointer"
             >
               <div className="relative flex-shrink-0">
                 <img
@@ -239,6 +241,10 @@ export function ProductsSection() {
                   </div>
                   <Button
                     size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Add to cart logic
+                    }}
                     className="bg-[#2a9d8f] hover:bg-[#264653] text-white"
                     disabled={!product.inStock}
                   >
@@ -250,7 +256,6 @@ export function ProductsSection() {
             </Card>
           ))}
 
-          {/* Coming Soon / Add Product Card */}
           <Card 
             className="group flex flex-col overflow-hidden rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer"
             onClick={() => {
@@ -280,7 +285,6 @@ export function ProductsSection() {
           </Card>
         </div>
 
-        {/* CTA Button */}
         <div className="text-center mt-12">
           {!showAll && hasMoreProducts ? (
             <Button
@@ -309,7 +313,6 @@ export function ProductsSection() {
         </div>
       </div>
 
-      {/* Add Product Modal */}
       <AddProductModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

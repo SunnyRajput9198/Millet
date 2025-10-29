@@ -10,6 +10,7 @@ import reviewsRouter from './reviews/route';
 import couponRouter from './coupon/route';
 import notificationRouter from './notification/route';
 import shipmentRouter from './shipment/route';
+import settingRouter from './setting/route';
 import recentlyViewedRoute from './recently-viewed/route'
 
 const router = Router();
@@ -26,6 +27,7 @@ router.use('/recently-viewed', recentlyViewedRoute);
 router.use('/shipments', shipmentRouter);
 router.use('/notifications', notificationRouter);
 router.use('/coupons', couponRouter);
+router.use('/settings', settingRouter);
 router.use('/addresses', addressRouter);
 
 export default router;
