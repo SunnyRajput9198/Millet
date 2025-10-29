@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { ShoppingCart, Search, Menu, X, User, Heart, LogOut } from "lucide-react"
+import NotificationBell from "./Notificationbell"
 import { getValidAccessToken, clearAuthData } from '../utils/tokenRefresh'
 
 interface UserData {
@@ -15,11 +16,17 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [user, setUser] = useState<UserData | null>(null)
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [cartCount, setCartCount] = useState(0)
   const userMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     // Check and refresh user data on mount
     checkAndRefreshUser()
+    
+    // Fetch cart count if user is logged in
+    if (localStorage.getItem("user")) {
+      fetchCartCount()
+    }
   }, [])
 
   const checkAndRefreshUser = async () => {
@@ -60,6 +67,34 @@ export function Header() {
     }
   }
 
+  const fetchCartCount = async () => {
+    try {
+      const accessToken = await getValidAccessToken()
+      
+      if (!accessToken) {
+        return
+      }
+
+      const response = await fetch("http://localhost:8000/api/v1/cart", {
+        headers: { "Authorization": `Bearer ${accessToken}` }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.data) {
+          // Calculate total items in cart
+          const totalItems = data.data.cart.items.reduce(
+            (sum: number, item: any) => sum + item.quantity, 
+            0
+          )
+          setCartCount(totalItems)
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching cart count:", error)
+    }
+  }
+
   // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -80,9 +115,18 @@ export function Header() {
   const handleLogout = () => {
     clearAuthData()
     setUser(null)
+    setCartCount(0)
     setShowUserMenu(false)
     window.location.href = "/"
   }
+
+  // Expose function to refresh cart count (can be called from other components)
+  useEffect(() => {
+    (window as any).refreshCartCount = fetchCartCount
+    return () => {
+      delete (window as any).refreshCartCount
+    }
+  }, [])
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white shadow-sm">
@@ -119,13 +163,17 @@ export function Header() {
           </nav>
 
           {/* Desktop Actions */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-2">
             <button className="p-2 hover:bg-gray-100 rounded-full transition">
               <Search className="h-5 w-5 text-gray-600" />
             </button>
-            <button className="p-2 hover:bg-gray-100 rounded-full transition">
+            
+            <a href="/wishlist" className="p-2 hover:bg-gray-100 rounded-full transition">
               <Heart className="h-5 w-5 text-gray-600" />
-            </button>
+            </a>
+            
+            {/* Notification Bell - Only show if user is logged in */}
+            {user && <NotificationBell />}
             
             {/* User Menu */}
             {user ? (
@@ -158,8 +206,14 @@ export function Header() {
                     <a href="/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                       My Orders
                     </a>
+                    <a href="/addresses" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                      My Addresses
+                    </a>
                     <a href="/wishlist" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                       Wishlist
+                    </a>
+                    <a href="/notifications" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                      Notifications
                     </a>
                     {user.role === "ADMIN" && (
                       <a href="/admin" className="block px-4 py-2 text-sm text-green-700 hover:bg-gray-50 font-medium">
@@ -186,12 +240,15 @@ export function Header() {
               </a>
             )}
 
-            <button className="relative p-2 hover:bg-gray-100 rounded-full transition">
+            {/* Cart Button */}
+            <a href="/cart" className="relative p-2 hover:bg-gray-100 rounded-full transition">
               <ShoppingCart className="h-5 w-5 text-gray-600" />
-              <span className="absolute -top-1 -right-1 h-5 w-5 bg-green-600 text-white text-xs rounded-full flex items-center justify-center">
-                3
-              </span>
-            </button>
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-green-600 text-white text-xs rounded-full flex items-center justify-center px-1.5 font-medium">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </a>
           </div>
 
           {/* Mobile Menu Button */}
@@ -227,9 +284,13 @@ export function Header() {
                 <button className="p-2 hover:bg-gray-100 rounded-full transition">
                   <Search className="h-5 w-5 text-gray-600" />
                 </button>
-                <button className="p-2 hover:bg-gray-100 rounded-full transition">
+                
+                <a href="/wishlist" className="p-2 hover:bg-gray-100 rounded-full transition">
                   <Heart className="h-5 w-5 text-gray-600" />
-                </button>
+                </a>
+                
+                {/* Mobile Notification Bell */}
+                {user && <NotificationBell />}
                 
                 {user ? (
                   <div className="flex-1 space-y-2">
@@ -244,6 +305,27 @@ export function Header() {
                         <span className="text-xs text-gray-500">{user.role}</span>
                       </div>
                     </div>
+                    
+                    <div className="flex flex-col space-y-1 pl-2">
+                      <a href="/profile" className="text-sm text-gray-700 hover:text-green-600">
+                        My Profile
+                      </a>
+                      <a href="/orders" className="text-sm text-gray-700 hover:text-green-600">
+                        My Orders
+                      </a>
+                      <a href="/addresses" className="text-sm text-gray-700 hover:text-green-600">
+                        My Addresses
+                      </a>
+                      <a href="/notifications" className="text-sm text-gray-700 hover:text-green-600">
+                        Notifications
+                      </a>
+                      {user.role === "ADMIN" && (
+                        <a href="/admin" className="text-sm text-green-700 font-medium hover:text-green-800">
+                          Admin Panel
+                        </a>
+                      )}
+                    </div>
+                    
                     <button
                       onClick={handleLogout}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 rounded-lg flex items-center space-x-2"
@@ -261,12 +343,15 @@ export function Header() {
                   </a>
                 )}
                 
-                <button className="relative p-2 hover:bg-gray-100 rounded-full transition">
+                {/* Mobile Cart Button */}
+                <a href="/cart" className="relative p-2 hover:bg-gray-100 rounded-full transition">
                   <ShoppingCart className="h-5 w-5 text-gray-600" />
-                  <span className="absolute -top-1 -right-1 h-5 w-5 bg-green-600 text-white text-xs rounded-full flex items-center justify-center">
-                    3
-                  </span>
-                </button>
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-green-600 text-white text-xs rounded-full flex items-center justify-center px-1.5 font-medium">
+                      {cartCount > 99 ? "99+" : cartCount}
+                    </span>
+                  )}
+                </a>
               </div>
             </nav>
           </div>

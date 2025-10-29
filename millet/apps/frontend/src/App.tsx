@@ -6,6 +6,8 @@ import AddressPage from "./pages/adress-page"
 import Wishlist from "./pages/wishlist"
 import Recentlyviewed from "./pages/Recentlyviewedpage"
 import Product from "./pages/product"
+import CartPage from "./pages/cart-page"
+import Notification from "./pages/Notification-page"
 function App() {
   return (
     <Routes>
@@ -16,6 +18,8 @@ function App() {
       <Route path="/wishlist" element={<Wishlist />} />
       <Route path="/recently-viewed" element={<Recentlyviewed />} />
       <Route path="/products" element={<Product />} />
+      <Route path="/cart" element={<CartPage />} />
+      <Route path="/notifications" element={<Notification />} />
     </Routes>
   )
 }
