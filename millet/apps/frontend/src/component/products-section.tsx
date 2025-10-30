@@ -3,9 +3,10 @@ import { Badge } from "../components/ui/badge";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "../components/ui/card";
-import { Star, ShoppingCart, ArrowRight } from "lucide-react";
+import { Star, ShoppingCart, ArrowRight, Loader, Check } from "lucide-react";
 import { productAPI, type Product } from "../api/products";
 import { categoryAPI, type Category } from "../api/categories";
+import { getValidAccessToken } from "../utils/tokenRefresh";
 import AddProductModal from "./Addmodelproduct";
 
 export function ProductsSection() {
@@ -18,6 +19,8 @@ export function ProductsSection() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [addingToCart, setAddingToCart] = useState<string | null>(null);
+  const [addedToCart, setAddedToCart] = useState<string | null>(null);
 
   const INITIAL_DISPLAY_COUNT = 4;
 
@@ -91,6 +94,48 @@ export function ProductsSection() {
 
   const handleProductClick = (productSlug: string) => {
     navigate(`/product/${productSlug}`);
+  };
+
+  const handleAddToCart = async (e: React.MouseEvent, productId: string) => {
+    e.stopPropagation();
+
+    // Check if user is logged in
+    const accessToken = await getValidAccessToken();
+    if (!accessToken) {
+      navigate("/auth");
+      return;
+    }
+
+    try {
+      setAddingToCart(productId);
+      
+      const response = await fetch("http://localhost:8000/api/v1/cart/items", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          productId,
+          quantity: 1,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Show success state
+        setAddedToCart(productId);
+        setTimeout(() => setAddedToCart(null), 2000);
+      } else {
+        alert(data.message || "Failed to add to cart");
+      }
+    } catch (err: any) {
+      console.error("Error adding to cart:", err);
+      alert("Failed to add to cart");
+    } finally {
+      setAddingToCart(null);
+    }
   };
 
   const displayedProducts = showAll ? products : products.slice(0, INITIAL_DISPLAY_COUNT);
@@ -241,15 +286,27 @@ export function ProductsSection() {
                   </div>
                   <Button
                     size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Add to cart logic
-                    }}
-                    className="bg-[#2a9d8f] hover:bg-[#264653] text-white"
-                    disabled={!product.inStock}
+                    onClick={(e) => handleAddToCart(e, product.id)}
+                    className={`${
+                      addedToCart === product.id
+                        ? "bg-green-600 hover:bg-green-700"
+                        : "bg-[#2a9d8f] hover:bg-[#264653]"
+                    } text-white transition-colors`}
+                    disabled={!product.inStock || addingToCart === product.id}
                   >
-                    <ShoppingCart className="w-4 h-4 mr-2" />
-                    Add
+                    {addingToCart === product.id ? (
+                      <Loader className="w-4 h-4 animate-spin" />
+                    ) : addedToCart === product.id ? (
+                      <>
+                        <Check className="w-4 h-4 mr-2" />
+                        Added
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                        Add
+                      </>
+                    )}
                   </Button>
                 </div>
               </CardContent>
