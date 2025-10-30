@@ -218,7 +218,7 @@ router.post(
 
     // Generate unique order number
     const orderNumber = generateOrderNumber();
-
+    const addressId = shippingAddressId; // Assuming primary address is shipping address
     // Create order with transaction
     const order = await prisma.$transaction(async (tx) => {
       // Create order
@@ -228,6 +228,7 @@ router.post(
           userId,
           shippingAddressId,
           billingAddressId,
+          addressId,
           paymentMethod,
           subtotal,
           tax,

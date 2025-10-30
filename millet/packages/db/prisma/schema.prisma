@@ -31,15 +31,20 @@ enum PaymentStatus {
   PENDING
   COMPLETED
   FAILED
+  PROCESSING
   REFUNDED
 }
 
 enum PaymentMethod {
   CARD
-  PAYPAL
   COD
-  BANK_TRANSFER
+  UPI
+  NETBANKING
   WALLET
+}
+enum TransactionType {
+  PAYMENT
+  REFUND
 }
 
 model User {
@@ -67,6 +72,7 @@ model User {
   cart              Cart?
   notifications     Notification[]
   recentlyViewed    RecentlyViewed[]
+  transactions      Transaction[]
 
 }
 
@@ -165,6 +171,7 @@ model Address {
 
   ordersShipping    Order[]           @relation("ShippingAddress")
   ordersBilling     Order[]           @relation("BillingAddress")
+  orders            Order[]           @relation("OrderAddress")
 }
 
 model Cart {
@@ -202,6 +209,8 @@ model Order {
   shippingFee       Float
   discount          Float             @default(0)
   total             Float
+  addressId         String
+  address           Address           @relation("OrderAddress", fields: [addressId], references: [id])
   status            OrderStatus       @default(PENDING)
   paymentStatus     PaymentStatus     @default(PENDING)
   paymentMethod     PaymentMethod
@@ -243,19 +252,80 @@ model OrderItem {
   commission        Float?
   createdAt         DateTime          @default(now())
 }
-
 model Transaction {
   id                String            @id @default(cuid())
   orderId           String
   order             Order             @relation(fields: [orderId], references: [id])
+  userId            String
+  user              User              @relation(fields: [userId], references: [id])
   amount            Float
-  type              String            // PAYMENT, REFUND
-  status            String
+  type              TransactionType   // PAYMENT or REFUND (using enum now)
+  status            PaymentStatus     // Uses PaymentStatus enum
   method            PaymentMethod
-  transactionId     String?
-  metadata          Json?
+  transactionId     String            @unique
+  
+  // Card Payment Details
+  cardLast4         String?
+  cardBrand         String?           // VISA, MASTERCARD, AMEX, etc.
+  
+  // QR/UPI Payment Details
+  screenshotUrl     String?           // Screenshot of payment proof
+  upiTransactionId  String?           // UPI reference number
+  
+  // Bank Transfer Details
+  bankReferenceNo   String?           // Bank transaction reference
+  
+  // Verification (for manual payment methods)
+  verifiedAt        DateTime?
+  verifiedBy        String?           // Admin user ID who verified
+  rejectionReason   String?           // If payment rejected
+  
+  // Additional Data
+  metadata          Json?             // Payment gateway response or extra data
+  
   createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+  @@index([transactionId])
 }
+
+// Payment Configuration Model
+model PaymentConfig {
+  id                String   @id @default(cuid())
+  
+  // UPI Details
+  upiId             String?
+  upiQrCodeUrl      String?           // QR code image for UPI payments
+  
+  // Bank Transfer Details
+  accountNumber     String?
+  ifscCode          String?
+  accountHolderName String?
+  bankName          String?
+  branchName        String?
+  
+  // Payment Gateway Config (Razorpay, Stripe, etc.)
+  razorpayKeyId     String?
+  razorpayKeySecret String?
+  stripePublicKey   String?
+  stripeSecretKey   String?
+  
+  // Settings
+  isActive          Boolean  @default(true)
+  autoVerifyPayments Boolean @default(false)
+  minOrderAmount    Float?
+  maxOrderAmount    Float?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("payment_configs")
+}
+
 
 model Coupon {
   id                String            @id @default(cuid())
