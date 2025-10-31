@@ -2,44 +2,16 @@ import { Router, Request, Response } from "express";
 import { Order, OrderStatus, PaymentMethod, prisma } from "@repo/db";
 import { protect, admin } from "../../middleware/authmiddleware";
 import { asyncHandler, ApiError } from "../../utils/Api";
-import multer from "multer";
-import path from "path";
-import Stripe from "stripe";
+import Razorpay from "razorpay";
+import crypto from "crypto";
 
 const router = Router();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-10-29.clover",
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID!,
+  key_secret: process.env.RAZORPAY_KEY_SECRET!,
 });
 
-// Configure multer for screenshot uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/payment-screenshots/");
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, "payment-" + uniqueSuffix + path.extname(file.originalname));
-  },
-});
-
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif/;
-    const extname = allowedTypes.test(
-      path.extname(file.originalname).toLowerCase()
-    );
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error("Only image files are allowed!"));
-    }
-  },
-});
 
 // ============================================
 // HELPER FUNCTIONS
@@ -233,185 +205,46 @@ async function createOrder(
   return order;
 }
 
-// ============================================
-// PUBLIC ROUTES
-// ============================================
+router.post("/create-order", async (req, res) => {
+  try {
+    const { amount, currency } = req.body;
 
-// GET /api/v1/payments/config - Get payment configuration
-router.get(
-  "/config",
-  asyncHandler(async (req: Request, res: Response) => {
-    const config = await prisma.paymentConfig.findFirst({
-      where: { isActive: true },
-    });
+    const options = {
+      amount: amount * 100, // convert to paise
+      currency: currency || "INR",
+      receipt: `receipt_${Date.now()}`,
+    };
 
-    if (!config) {
-      return res.json({
-        success: true,
-        message: "No payment configuration found",
-        data: {},
-      });
-    }
+    const order = await razorpay.orders.create(options);
+    res.json({ success: true, order });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Failed to create order" });
+  }
+});
 
-    res.json({
-      success: true,
-      message: "Payment configuration retrieved",
-      data: {
-        upiId: config.upiId,
-        upiQrCodeUrl: config.upiQrCodeUrl,
-        accountNumber: config.accountNumber,
-        ifscCode: config.ifscCode,
-        accountHolderName: config.accountHolderName,
-        bankName: config.bankName,
-      },
-    });
-  })
-);
+// Verify signature after payment
+router.post("/verify", (req, res) => {
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
-// ============================================
-// STRIPE CARD PAYMENT FLOW
-// ============================================
+  const body = razorpay_order_id + "|" + razorpay_payment_id;
 
-// POST /api/v1/payments/create-payment-intent
-router.post(
-  "/create-payment-intent",
-  protect,
-  asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user?.id;
-    const { addressId, paymentMethod = "CARD" } = req.body;
+  const expectedSignature = crypto
+    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
+    .update(body.toString())
+    .digest("hex");
 
-    if (!userId) {
-      throw new ApiError(401, "User not authenticated");
-    }
-
-    if (!addressId) {
-      throw new ApiError(400, "Address ID is required");
-    }
-
-    const calculation = await calculateOrderTotals(userId, addressId, paymentMethod);
-
-    // Create payment intent with Stripe
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(calculation.total * 100), // Convert to paise
-      currency: "inr",
-      metadata: {
-        userId,
-        addressId,
-        subtotal: calculation.subtotal.toString(),
-        tax: calculation.tax.toString(),
-        shippingFee: calculation.shippingFee.toString(),
-        discount: calculation.discount.toString(),
-        total: calculation.total.toString(),
-        couponCode: calculation.cart.couponCode || "",
-      },
-      automatic_payment_methods: {
-        enabled: true,
-      },
-    });
-
-    res.json({
-      success: true,
-      message: "Payment intent created successfully",
-      data: {
-        clientSecret: paymentIntent.client_secret,
-        paymentIntentId: paymentIntent.id,
-        amount: calculation.total,
-        breakdown: {
-          subtotal: calculation.subtotal,
-          tax: calculation.tax,
-          shippingFee: calculation.shippingFee,
-          discount: calculation.discount,
-          total: calculation.total,
-        },
-      },
-    });
-  })
-);
-
-// POST /api/v1/payments/confirm-payment - Confirm Stripe payment and create order
-router.post(
-  "/confirm-payment",
-  protect,
-  asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user?.id;
-    const { paymentIntentId, addressId } = req.body;
-
-    if (!userId) {
-      throw new ApiError(401, "User not authenticated");
-    }
-
-    if (!paymentIntentId || !addressId) {
-      throw new ApiError(400, "Payment intent ID and address ID are required");
-    }
-
-    // Verify payment with Stripe
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-
-    if (paymentIntent.status !== "succeeded") {
-      throw new ApiError(400, "Payment not completed");
-    }
-
-    // Check if order already exists for this payment
-    const existingTransaction = await prisma.transaction.findUnique({
-      where: { transactionId: paymentIntentId },
-      include: { order: true },
-    });
-
-    if (existingTransaction) {
-      return res.json({
-        success: true,
-        message: "Order already created",
-        data: {
-          orderNumber: existingTransaction.order.orderNumber,
-          orderId: existingTransaction.order.id,
-        },
-      });
-    }
-
-    const calculation = await calculateOrderTotals(userId, addressId, "CARD");
-
-    // Create order
-    const order = await createOrder(
-      userId,
-      addressId,
-      calculation,
-      "CARD",
-      "COMPLETED",
-      "PROCESSING"
-    );
-
-    // Create transaction record
-    const transaction = await prisma.transaction.create({
-      data: {
-        orderId: order.id,
-        userId,
-        amount: calculation.total,
-        type: "PAYMENT",
-        status: "COMPLETED",
-        method: "CARD",
-        transactionId: paymentIntentId,
-      },
-    });
-
-    res.json({
-      success: true,
-      message: "Order created successfully",
-      data: {
-        orderNumber: order.orderNumber,
-        orderId: order.id,
-        transaction,
-      },
-    });
-  })
-);
-
+  if (expectedSignature === razorpay_signature) {
+    res.json({ success: true });
+  } else {
+    res.status(400).json({ success: false, message: "Invalid signature" });
+  }
+});
 // ============================================
 // UPI PAYMENT
 // ============================================
-
 // POST /api/v1/payments/create-upi-payment
-router.post(
-  "/create-upi-payment",
+router.post( "/create-upi-payment",
   protect,
   asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -508,146 +341,11 @@ router.post(
 );
 
 // ============================================
-// NET BANKING PAYMENT
-// ============================================
-
-// POST /api/v1/payments/create-netbanking-payment
-router.post(
-  "/create-netbanking-payment",
-  protect,
-  asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user?.id;
-    const { addressId, paymentMethod = "NETBANKING", bankCode } = req.body;
-
-    if (!userId) {
-      throw new ApiError(401, "User not authenticated");
-    }
-
-    if (!addressId || !bankCode) {
-      throw new ApiError(400, "Address ID and bank code are required");
-    }
-
-    const calculation = await calculateOrderTotals(userId, addressId, paymentMethod);
-
-    // Create order
-    const order = await createOrder(
-      userId,
-      addressId,
-      calculation,
-      paymentMethod,
-      "PENDING",
-      "PENDING"
-    );
-
-    const transactionId = `NB${Date.now()}${Math.random()
-      .toString(36)
-      .substr(2, 9)
-      .toUpperCase()}`;
-
-    // Create transaction
-    await prisma.transaction.create({
-      data: {
-        orderId: order.id,
-        userId,
-        amount: calculation.total,
-        type: "PAYMENT",
-        status: "PENDING",
-        method: paymentMethod,
-        transactionId,
-        metadata: { bankCode },
-      },
-    });
-
-    // In production, integrate with actual payment gateway
-    const redirectUrl = `https://bank-gateway.example.com/pay?ref=${transactionId}&amount=${calculation.total}`;
-
-    res.json({
-      success: true,
-      message: "Order created. Redirecting to bank...",
-      data: {
-        orderNumber: order.orderNumber,
-        orderId: order.id,
-        redirectUrl,
-        transactionId,
-      },
-    });
-  })
-);
-
-// ============================================
-// WALLET PAYMENT
-// ============================================
-
-// POST /api/v1/payments/create-wallet-payment
-router.post(
-  "/create-wallet-payment",
-  protect,
-  asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user?.id;
-    const { addressId, paymentMethod = "WALLET", walletProvider } = req.body;
-
-    if (!userId) {
-      throw new ApiError(401, "User not authenticated");
-    }
-
-    if (!addressId || !walletProvider) {
-      throw new ApiError(400, "Address ID and wallet provider are required");
-    }
-
-    const calculation = await calculateOrderTotals(userId, addressId, paymentMethod);
-
-    // Create order
-    const order = await createOrder(
-      userId,
-      addressId,
-      calculation,
-      paymentMethod,
-      "PENDING",
-      "PENDING"
-    );
-
-    const transactionId = `WALLET${Date.now()}${Math.random()
-      .toString(36)
-      .substr(2, 9)
-      .toUpperCase()}`;
-
-    // Create transaction
-    await prisma.transaction.create({
-      data: {
-        orderId: order.id,
-        userId,
-        amount: calculation.total,
-        type: "PAYMENT",
-        status: "PENDING",
-        method: paymentMethod,
-        transactionId,
-        metadata: { walletProvider },
-      },
-    });
-
-    // In production, integrate with actual wallet gateway
-    const redirectUrl = `https://${walletProvider}-gateway.example.com/pay?ref=${transactionId}&amount=${calculation.total}`;
-
-    res.json({
-      success: true,
-      message: "Order created. Redirecting to wallet...",
-      data: {
-        orderNumber: order.orderNumber,
-        orderId: order.id,
-        redirectUrl,
-        transactionId,
-      },
-    });
-  })
-);
-
-// ============================================
 // CASH ON DELIVERY
 // ============================================
 
 // POST /api/v1/payments/create-cod-order
-router.post(
-  "/create-cod-order",
+router.post( "/create-cod-order",
   protect,
   asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -721,8 +419,7 @@ router.post(
 // ============================================
 
 // GET /api/v1/payments/check-status/:paymentId
-router.get(
-  "/check-status/:paymentId",
+router.get( "/check-status/:paymentId",
   protect,
   asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -762,8 +459,7 @@ if(!paymentId){
 );
 
 // GET /api/v1/payments/verify/:transactionId
-router.get(
-  "/verify/:transactionId",
+router.get("/verify/:transactionId",
   protect,
   asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -799,8 +495,7 @@ if(!transactionId){
 );
 
 // GET /api/v1/payments/history
-router.get(
-  "/history",
+router.get("/history",
   protect,
   asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -839,112 +534,10 @@ router.get(
 );
 
 // ============================================
-// STRIPE WEBHOOK
-// ============================================
-
-router.post(
-  "/webhook",
-  asyncHandler(async (req: Request, res: Response) => {
-    const sig = req.headers["stripe-signature"] as string;
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-
-    let event: Stripe.Event;
-
-    try {
-      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-    } catch (err: any) {
-      console.error("Webhook signature verification failed:", err.message);
-      throw new ApiError(400, `Webhook Error: ${err.message}`);
-    }
-
-    console.log("Webhook event received:", event.type);
-
-    switch (event.type) {
-      case "payment_intent.succeeded":
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        console.log(`PaymentIntent succeeded: ${paymentIntent.id}`);
-
-        try {
-          await prisma.transaction.updateMany({
-            where: { transactionId: paymentIntent.id },
-            data: { status: "COMPLETED" },
-          });
-        } catch (error) {
-          console.error("Error updating transaction:", error);
-        }
-        break;
-
-      case "payment_intent.payment_failed":
-        const failedPayment = event.data.object as Stripe.PaymentIntent;
-        console.log(`PaymentIntent failed: ${failedPayment.id}`);
-
-        try {
-          await prisma.transaction.updateMany({
-            where: { transactionId: failedPayment.id },
-            data: { status: "FAILED" },
-          });
-        } catch (error) {
-          console.error("Error updating transaction:", error);
-        }
-        break;
-
-      default:
-        console.log(`Unhandled event type: ${event.type}`);
-    }
-
-    res.json({ received: true });
-  })
-);
-
-// ============================================
 // ADMIN ROUTES
 // ============================================
-
-// POST /api/v1/payments/admin/payment-config
-router.post(
-  "/admin/payment-config",
-  protect,
-  admin,
-  asyncHandler(async (req: Request, res: Response) => {
-    const {
-      upiId,
-      upiQrCodeUrl,
-      accountNumber,
-      ifscCode,
-      accountHolderName,
-      bankName,
-    } = req.body;
-
-    // Deactivate existing configs
-    await prisma.paymentConfig.updateMany({
-      where: { isActive: true },
-      data: { isActive: false },
-    });
-
-    // Create new config
-    const config = await prisma.paymentConfig.create({
-      data: {
-        upiId,
-        upiQrCodeUrl,
-        accountNumber,
-        ifscCode,
-        accountHolderName,
-        bankName,
-        isActive: true,
-      },
-    });
-
-    res.json({
-      success: true,
-      message: "Payment configuration updated successfully",
-      data: config,
-    });
-  })
-);
-
 // GET /api/v1/payments/admin/payments/pending
-router.get(
-  "/admin/payments/pending",
+router.get( "/admin/payments/pending",
   protect,
   admin,
   asyncHandler(async (req: Request, res: Response) => {
@@ -987,8 +580,7 @@ router.get(
 );
 
 // PATCH /api/v1/payments/admin/payments/:transactionId/verify
-router.patch(
-  "/admin/payments/:transactionId/verify",
+router.patch("/admin/payments/:transactionId/verify",
   protect,
   admin,
   asyncHandler(async (req: Request, res: Response) => {

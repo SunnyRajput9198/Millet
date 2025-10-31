@@ -36,11 +36,8 @@ enum PaymentStatus {
 }
 
 enum PaymentMethod {
-  CARD
   COD
   UPI
-  NETBANKING
-  WALLET
 }
 enum TransactionType {
   PAYMENT

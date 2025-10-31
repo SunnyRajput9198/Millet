@@ -137,9 +137,8 @@ export function ProductsSection() {
       setAddingToCart(null);
     }
   };
-
-  const displayedProducts = showAll ? products : products.slice(0, INITIAL_DISPLAY_COUNT);
-  const hasMoreProducts = products.length > INITIAL_DISPLAY_COUNT;
+ const displayedProducts = showAll ? products : products?.slice(0, INITIAL_DISPLAY_COUNT) ?? [];
+  const hasMoreProducts = (products?.length ?? 0) > INITIAL_DISPLAY_COUNT;
 
   if (loading) {
     return (

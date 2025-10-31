@@ -1,30 +1,17 @@
 import { useState, useEffect } from "react";
-import { loadStripe } from "@stripe/stripe-js";
 import {
-  Elements,
-  PaymentElement,
-  useStripe,
-  useElements,
-} from "@stripe/react-stripe-js";
-// stripe listen --forward-to localhost:8000/api/v1/payments/webhook
-import {
-  CreditCard,
   MapPin,
   Package,
   ArrowRight,
   CheckCircle,
   AlertCircle,
   Loader,
-  Wallet,
   Banknote,
   Smartphone,
-  Building2,
-  QrCode,
   ArrowLeft,
 } from "lucide-react";
 
-// Initialize Stripe
-const stripePromise = loadStripe("pk_test_51QRWsiSCbAqVTTWBmock"); // Replace with your actual key
+const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID!
 
 interface CartItem {
   id: string;
@@ -61,165 +48,27 @@ interface PriceBreakdown {
   discount: number;
   total: number;
 }
-
-// Payment Form Component for Card payments
-function PaymentForm({
-  clientSecret,
-  paymentIntentId,
-  addressId,
+// UPI Payment Component with Razorpay Integration
+function UPIPayment({
   onSuccess,
+  total,
+  addressId
 }: {
-  clientSecret: string;
-  paymentIntentId: string;
-  addressId: string;
   onSuccess: (orderNumber: string) => void;
-}) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!stripe || !elements) {
-      return;
-    }
-
-    setProcessing(true);
-    setError("");
-
-    try {
-      const { error: submitError } = await elements.submit();
-      if (submitError) {
-        setError(submitError.message || "Payment submission failed");
-        setProcessing(false);
-        return;
-      }
-
-      const { error: confirmError } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: `${window.location.origin}/checkout?payment_intent=${paymentIntentId}`,
-        },
-        redirect: "if_required",
-      });
-
-      if (confirmError) {
-        setError(confirmError.message || "Payment failed");
-        setProcessing(false);
-        return;
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      try {
-        // Replace with your actual backend URL
-        const response = await fetch(
-          "http://localhost:8000/api/v1/payments/confirm-payment",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-            },
-            body: JSON.stringify({
-              paymentIntentId: paymentIntentId,
-              addressId: addressId,
-            }),
-          }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          console.error("Backend error:", data);
-          throw new Error(data.message || "Failed to create order");
-        }
-
-        if (data.success) {
-          onSuccess(data.data.orderNumber);
-        } else {
-          setError(data.message || "Failed to create order");
-          setProcessing(false);
-        }
-      } catch (err: any) {
-        console.error("Backend confirmation error:", err);
-        setError(err.message || "Failed to confirm order. Please contact support with payment ID: " + paymentIntentId);
-        setProcessing(false);
-      }
-    } catch (err: any) {
-      console.error("Payment error:", err);
-      setError(err.message || "An error occurred");
-      setProcessing(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement />
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-start space-x-2">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-          <span className="text-sm">{error}</span>
-        </div>
-      )}
-
-      <button
-        type="submit"
-        disabled={!stripe || processing}
-        className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold text-lg"
-      >
-        {processing ? (
-          <>
-            <Loader className="w-5 h-5 animate-spin" />
-            <span>Processing Payment...</span>
-          </>
-        ) : (
-          <>
-            <span>Pay Now</span>
-            <ArrowRight className="w-5 h-5" />
-          </>
-        )}
-      </button>
-
-      <p className="text-xs text-gray-500 text-center">
-        Your payment is secured by Stripe. We never store your card details.
-      </p>
-    </form>
-  );
-}
-
-// UPI Payment Component
-function UPIPayment({ 
-  onSuccess, 
-  total, 
-  addressId 
-}: { 
-  onSuccess: (orderNumber: string) => void; 
   total: number;
   addressId: string;
 }) {
-  const [upiId, setUpiId] = useState("");
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
-  const [showQR, setShowQR] = useState(false);
-   const [orderNumber, setOrderNumber] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!upiId) {
-      setError("Please enter your UPI ID");
-      return;
-    }
-
+  const handleRazorpayPayment = async () => {
     setProcessing(true);
     setError("");
 
     try {
+      // Step 1: Create Razorpay order
       const response = await fetch(
-        "http://localhost:8000/api/v1/payments/create-upi-payment",
+        "http://localhost:8000/api/v1/payments/create-order",
         {
           method: "POST",
           headers: {
@@ -227,314 +76,134 @@ function UPIPayment({
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
           body: JSON.stringify({
-            addressId: addressId,
-            paymentMethod: "UPI",
-            upiId: upiId,
+            amount: total,
+            currency: "INR",
           }),
         }
       );
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to process UPI payment");
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to create order");
       }
 
-      if (data.success) {
-        onSuccess(data.data.orderNumber);
-      } else {
-        setError(data.message || "Failed to process payment");
-        setProcessing(false);
-      }
+      const { order } = data;
+
+      // Step 2: Configure Razorpay options
+      const options = {
+        key: RAZORPAY_KEY_ID,
+        amount: order.amount,
+        currency: order.currency,
+        name: "Your Store Name",
+        description: "Order Payment",
+        order_id: order.id,
+        handler: async function (response: any) {
+          // Step 3: Verify payment signature
+          try {
+            const verifyResponse = await fetch(
+              "http://localhost:8000/api/v1/payments/verify",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                }),
+              }
+            );
+
+            const verifyData = await verifyResponse.json();
+
+            if (verifyData.success) {
+              // Step 4: Create order in your system
+              const createOrderResponse = await fetch(
+                "http://localhost:8000/api/v1/payments/create-upi-payment",
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                  },
+                  body: JSON.stringify({
+                    addressId: addressId,
+                    paymentMethod: "UPI",
+                    upiTransactionId: response.razorpay_payment_id,
+                  }),
+                }
+              );
+
+              const orderData = await createOrderResponse.json();
+
+              if (orderData.success) {
+                onSuccess(orderData.data.orderNumber);
+              } else {
+                setError(orderData.message || "Failed to create order");
+                setProcessing(false);
+              }
+            } else {
+              setError("Payment verification failed");
+              setProcessing(false);
+            }
+          } catch (err: any) {
+            console.error("Verification error:", err);
+            setError(err.message || "Payment verification failed");
+            setProcessing(false);
+          }
+        },
+        prefill: {
+          name: "",
+          email: "",
+          contact: "",
+        },
+        notes: {
+          address_id: addressId,
+        },
+        theme: {
+          color: "#16a34a",
+        },
+        method: {
+          upi: true,
+          card: false,
+          netbanking: false,
+          wallet: false,
+        },
+        modal: {
+          ondismiss: function () {
+            setProcessing(false);
+            setError("Payment cancelled by user");
+          },
+        },
+      };
+
+      // Step 5: Open Razorpay checkout
+      const razorpay = new (window as any).Razorpay(options);
+      razorpay.open();
     } catch (err: any) {
-      setError(err.message || "Payment failed");
+      console.error("Payment error:", err);
+      setError(err.message || "Failed to initiate payment");
       setProcessing(false);
     }
   };
-
- // In your UPIPayment component, replace the handleQRPayment function:
-const handleQRPayment = async () => {
-  setShowQR(true);
-  setProcessing(true);
-  setError("");
-
-  try {
-    const response = await fetch(
-      "http://localhost:8000/api/v1/payments/create-upi-payment",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-        body: JSON.stringify({
-          addressId: addressId,
-          paymentMethod: "UPI_QR",
-        }),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to generate QR code");
-    }
-
-    if (data.success) {
-      // Instead of polling, just show success immediately for demo
-      // In production, you'd integrate with actual UPI gateway
-      setTimeout(() => {
-        onSuccess(data.data.orderNumber);
-      }, 3000); // Simulate 3 second payment
-    }
-
-    /* REMOVE THE POLLING CODE - IT'S CAUSING THE AUTH ISSUE
-    // Poll for payment status
-    const checkPaymentStatus = setInterval(async () => {
-      const statusResponse = await fetch(
-        `http://localhost:8000/api/v1/payments/check-status/${data.data.paymentId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-        }
-      );
-      
-      const statusData = await statusResponse.json();
-      
-      if (statusData.data.status === "SUCCESS") {
-        clearInterval(checkPaymentStatus);
-        onSuccess(statusData.data.orderNumber);
-      }
-    }, 3000);
-
-    // Timeout after 5 minutes
-    setTimeout(() => {
-      clearInterval(checkPaymentStatus);
-      setError("Payment timeout. Please try again.");
-      setProcessing(false);
-      setShowQR(false);
-    }, 300000);
-    */
-
-  } catch (err: any) {
-    console.error("QR Payment Error:", err);
-    setError(err.message || "Failed to generate QR code");
-    setProcessing(false);
-    setShowQR(false);
-  }
-};
-
-  if (showQR) {
-  return (
-    <div className="text-center py-8">
-      <div className="w-64 h-64 bg-white border-4 border-green-600 rounded-xl mx-auto mb-6 flex items-center justify-center">
-        <QrCode className="w-32 h-32 text-green-600" />
-      </div>
-      <p className="text-lg font-semibold text-gray-900 mb-2">Scan QR Code to Pay</p>
-      <p className="text-gray-600 mb-4">Amount: ₹{total.toFixed(2)}</p>
-      
-      {processing ? (
-        <>
-          <Loader className="w-8 h-8 animate-spin text-green-600 mx-auto" />
-          <p className="text-sm text-gray-500 mt-4">Creating order...</p>
-        </>
-      ) : (
-        <>
-          <p className="text-sm text-gray-600 mb-6">
-            After completing the payment, click the button below
-          </p>
-          <button
-            onClick={() => onSuccess(orderNumber)}
-            className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold"
-          >
-            I've Completed the Payment
-          </button>
-          <button
-            onClick={() => {
-              setShowQR(false);
-              setProcessing(false);
-            }}
-            className="mt-4 block w-full text-red-600 hover:text-red-700 text-sm"
-          >
-            Cancel Payment
-          </button>
-        </>
-      )}
-    </div>
-  );
-}
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Enter UPI ID
-          </label>
-          <input
-            type="text"
-            placeholder="yourname@upi"
-            value={upiId}
-            onChange={(e) => setUpiId(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
-        </div>
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-start space-x-2">
-            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-            <span className="text-sm">{error}</span>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start space-x-3">
+          <Smartphone className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
+          <div>
+            <h3 className="font-semibold text-blue-900 mb-2">UPI Payment</h3>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• Pay using any UPI app</li>
+              <li>• Google Pay, PhonePe, Paytm & more</li>
+              <li>• Instant payment confirmation</li>
+              <li>• 100% secure and encrypted</li>
+            </ul>
           </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={processing}
-          className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold text-lg"
-        >
-          {processing ? (
-            <>
-              <Loader className="w-5 h-5 animate-spin" />
-              <span>Verifying...</span>
-            </>
-          ) : (
-            <>
-              <span>Verify & Pay</span>
-              <ArrowRight className="w-5 h-5" />
-            </>
-          )}
-        </button>
-      </form>
-
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-300"></div>
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-white text-gray-500">OR</span>
-        </div>
-      </div>
-
-      <button
-        onClick={handleQRPayment}
-        disabled={processing}
-        className="w-full flex items-center justify-center space-x-2 px-6 py-4 border-2 border-green-600 text-green-600 rounded-lg hover:bg-green-50 transition font-semibold text-lg"
-      >
-        <QrCode className="w-5 h-5" />
-        <span>Pay with QR Code</span>
-      </button>
-
-      <div className="grid grid-cols-4 gap-3 pt-4">
-        {['Google Pay', 'PhonePe', 'Paytm', 'BHIM'].map((app) => (
-          <button
-            key={app}
-            className="flex flex-col items-center p-3 border border-gray-200 rounded-lg hover:border-green-600 hover:bg-green-50 transition"
-          >
-            <Smartphone className="w-6 h-6 text-gray-600 mb-1" />
-            <span className="text-xs text-gray-600">{app}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Net Banking Component
-function NetBankingPayment({ 
-  onSuccess, 
-  addressId 
-}: { 
-  onSuccess: (orderNumber: string) => void;
-  addressId: string;
-}) {
-  const [selectedBank, setSelectedBank] = useState("");
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState("");
-
-  const popularBanks = [
-    { id: 'sbi', name: 'State Bank of India' },
-    { id: 'hdfc', name: 'HDFC Bank' },
-    { id: 'icici', name: 'ICICI Bank' },
-    { id: 'axis', name: 'Axis Bank' },
-    { id: 'kotak', name: 'Kotak Mahindra Bank' },
-    { id: 'pnb', name: 'Punjab National Bank' },
-  ];
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedBank) {
-      setError("Please select a bank");
-      return;
-    }
-
-    setProcessing(true);
-    setError("");
-
-    try {
-      const response = await fetch(
-        "http://localhost:8000/api/v1/payments/create-netbanking-payment",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-          body: JSON.stringify({
-            addressId: addressId,
-            paymentMethod: "NETBANKING",
-            bankCode: selectedBank,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to initiate net banking");
-      }
-
-      if (data.success && data.data.redirectUrl) {
-        // Redirect to bank's payment page
-        window.location.href = data.data.redirectUrl;
-      } else {
-        setError(data.message || "Failed to process payment");
-        setProcessing(false);
-      }
-    } catch (err: any) {
-      setError(err.message || "Payment failed");
-      setProcessing(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
-          Select Your Bank
-        </label>
-        <div className="grid grid-cols-1 gap-3">
-          {popularBanks.map((bank) => (
-            <label
-              key={bank.id}
-              className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition ${
-                selectedBank === bank.id
-                  ? "border-green-600 bg-green-50"
-                  : "border-gray-200 hover:border-green-300"
-              }`}
-            >
-              <input
-                type="radio"
-                name="bank"
-                value={bank.id}
-                checked={selectedBank === bank.id}
-                onChange={(e) => setSelectedBank(e.target.value)}
-                className="mr-3"
-              />
-              <Building2 className="w-5 h-5 text-gray-600 mr-3" />
-              <span className="font-medium text-gray-900">{bank.name}</span>
-            </label>
-          ))}
         </div>
       </div>
 
@@ -546,132 +215,7 @@ function NetBankingPayment({
       )}
 
       <button
-        type="submit"
-        disabled={processing}
-        className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold text-lg"
-      >
-        {processing ? (
-          <>
-            <Loader className="w-5 h-5 animate-spin" />
-            <span>Redirecting to Bank...</span>
-          </>
-        ) : (
-          <>
-            <span>Proceed to Bank</span>
-            <ArrowRight className="w-5 h-5" />
-          </>
-        )}
-      </button>
-    </form>
-  );
-}
-
-// Wallet Payment Component
-function WalletPayment({ 
-  onSuccess, 
-  addressId 
-}: { 
-  onSuccess: (orderNumber: string) => void;
-  addressId: string;
-}) {
-  const [selectedWallet, setSelectedWallet] = useState("");
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState("");
-
-  const wallets = [
-    { id: 'paytm', name: 'Paytm Wallet' },
-    { id: 'phonepe', name: 'PhonePe Wallet' },
-    { id: 'amazon', name: 'Amazon Pay' },
-    { id: 'mobikwik', name: 'Mobikwik' },
-  ];
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedWallet) {
-      setError("Please select a wallet");
-      return;
-    }
-
-    setProcessing(true);
-    setError("");
-
-    try {
-      const response = await fetch(
-        "http://localhost:8000/api/v1/payments/create-wallet-payment",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-          body: JSON.stringify({
-            addressId: addressId,
-            paymentMethod: "WALLET",
-            walletProvider: selectedWallet,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to initiate wallet payment");
-      }
-
-      if (data.success && data.data.redirectUrl) {
-        window.location.href = data.data.redirectUrl;
-      } else if (data.success) {
-        onSuccess(data.data.orderNumber);
-      } else {
-        setError(data.message || "Failed to process payment");
-        setProcessing(false);
-      }
-    } catch (err: any) {
-      setError(err.message || "Payment failed");
-      setProcessing(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
-          Select Wallet
-        </label>
-        <div className="grid grid-cols-1 gap-3">
-          {wallets.map((wallet) => (
-            <label
-              key={wallet.id}
-              className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition ${
-                selectedWallet === wallet.id
-                  ? "border-green-600 bg-green-50"
-                  : "border-gray-200 hover:border-green-300"
-              }`}
-            >
-              <input
-                type="radio"
-                name="wallet"
-                value={wallet.id}
-                checked={selectedWallet === wallet.id}
-                onChange={(e) => setSelectedWallet(e.target.value)}
-                className="mr-3"
-              />
-              <Wallet className="w-5 h-5 text-gray-600 mr-3" />
-              <span className="font-medium text-gray-900">{wallet.name}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-start space-x-2">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-          <span className="text-sm">{error}</span>
-        </div>
-      )}
-
-      <button
-        type="submit"
+        onClick={handleRazorpayPayment}
         disabled={processing}
         className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold text-lg"
       >
@@ -682,20 +226,37 @@ function WalletPayment({
           </>
         ) : (
           <>
-            <span>Pay with Wallet</span>
+            <Smartphone className="w-5 h-5" />
+            <span>Pay with UPI</span>
             <ArrowRight className="w-5 h-5" />
           </>
         )}
       </button>
-    </form>
+
+      <div className="grid grid-cols-4 gap-3 pt-4">
+        {['Google Pay', 'PhonePe', 'Paytm', 'BHIM'].map((app) => (
+          <button
+            key={app}
+            className="flex flex-col items-center p-3 border border-gray-200 rounded-lg hover:border-green-600 hover:bg-green-50 transition"
+            disabled
+          >
+            <Smartphone className="w-6 h-6 text-gray-600 mb-1" />
+            <span className="text-xs text-gray-600">{app}</span>
+          </button>
+        ))}
+      </div>
+
+      <p className="text-xs text-gray-500 text-center">
+        Your payment is secured by Razorpay. We never store your UPI PIN.
+      </p>
+    </div>
   );
 }
-
 // Cash on Delivery Component
-function CODPayment({ 
-  onSuccess, 
-  addressId 
-}: { 
+function CODPayment({
+  onSuccess,
+  addressId
+}: {
   onSuccess: (orderNumber: string) => void;
   addressId: string;
 }) {
@@ -723,11 +284,11 @@ function CODPayment({
       );
 
       const data = await response.json();
-       console.log("COD Response:", data); // Add logging
+      console.log("COD Response:", data); // Add logging
 
       if (!response.ok) {
         throw new Error(data.message || "Failed to create order");
-        
+
       }
 
       if (data.success) {
@@ -789,7 +350,7 @@ function CODPayment({
 }
 
 // Main Checkout Component
-export  function CheckoutPage() {
+export function CheckoutPage() {
   const [cart, setCart] = useState<Cart | null>(null);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<string>("");
@@ -797,8 +358,6 @@ export  function CheckoutPage() {
   const [error, setError] = useState("");
   const [step, setStep] = useState<"address" | "payment-method" | "payment" | "success">("address");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
-  const [clientSecret, setClientSecret] = useState("");
-  const [paymentIntentId, setPaymentIntentId] = useState("");
   const [priceBreakdown, setPriceBreakdown] = useState<PriceBreakdown | null>(null);
   const [orderNumber, setOrderNumber] = useState("");
 
@@ -841,7 +400,7 @@ export  function CheckoutPage() {
 
       if (cartData.success && cartData.data) {
         setCart(cartData.data.cart);
-        
+
         if (!cartData.data.cart.items || cartData.data.cart.items.length === 0) {
           setError("Your cart is empty");
         }
@@ -885,65 +444,8 @@ export  function CheckoutPage() {
       setError("Please select a payment method");
       return;
     }
-
-    // For COD, skip to payment step directly
-    if (selectedPaymentMethod === "cod") {
-      setStep("payment");
-      return;
-    }
-
-    // For card payments, create payment intent
-    if (selectedPaymentMethod === "card") {
-      try {
-        setLoading(true);
-        setError("");
-
-        const accessToken = localStorage.getItem("accessToken");
-        if (!accessToken) {
-          window.location.href = "/auth";
-          return;
-        }
-
-        const response = await fetch(
-          "http://localhost:8000/api/v1/payments/create-payment-intent",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify({
-              addressId: selectedAddress,
-              paymentMethod: "CARD",
-            }),
-          }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          console.error("Payment intent error:", data);
-          throw new Error(data.message || "Failed to initialize payment");
-        }
-
-        if (data.success && data.data) {
-          setClientSecret(data.data.clientSecret);
-          setPaymentIntentId(data.data.paymentIntentId);
-          setPriceBreakdown(data.data.breakdown);
-          setStep("payment");
-        } else {
-          setError(data.message || "Failed to initialize payment");
-        }
-      } catch (err: any) {
-        setError(err.message || "Error initializing payment");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      // For other payment methods, just move to payment step
-      setStep("payment");
-    }
+    setError("");
+    setStep("payment");
   };
 
   const handlePaymentSuccess = (orderNum: string) => {
@@ -955,41 +457,21 @@ export  function CheckoutPage() {
     if (!cart?.items) return 0;
     return cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   };
-
-  const paymentMethods = [
-    {
-      id: "upi",
-      name: "UPI",
-      description: "Pay using Google Pay, PhonePe, Paytm & more",
-      icon: Smartphone,
-      popular: true,
-    },
-    {
-      id: "card",
-      name: "Credit/Debit Card",
-      description: "Visa, Mastercard, RuPay, Amex",
-      icon: CreditCard,
-      popular: true,
-    },
-    {
-      id: "netbanking",
-      name: "Net Banking",
-      description: "All major banks supported",
-      icon: Building2,
-    },
-    {
-      id: "wallet",
-      name: "Wallets",
-      description: "Paytm, PhonePe, Amazon Pay & more",
-      icon: Wallet,
-    },
-    {
-      id: "cod",
-      name: "Cash on Delivery",
-      description: "Pay when you receive (₹40 extra)",
-      icon: Banknote,
-    },
-  ];
+const paymentMethods = [
+  {
+    id: "upi",
+    name: "UPI",
+    description: "Pay using Google Pay, PhonePe, Paytm & more",
+    icon: Smartphone,
+    popular: true,
+  },
+  {
+    id: "cod",
+    name: "Cash on Delivery",
+    description: "Pay when you receive (₹40 extra)",
+    icon: Banknote,
+  },
+];
 
   if (loading && step === "address") {
     return (
@@ -1092,11 +574,10 @@ export  function CheckoutPage() {
                       {addresses.map((addr) => (
                         <label
                           key={addr.id}
-                          className={`block p-4 border-2 rounded-lg cursor-pointer transition ${
-                            selectedAddress === addr.id
+                          className={`block p-4 border-2 rounded-lg cursor-pointer transition ${selectedAddress === addr.id
                               ? "border-green-600 bg-green-50"
                               : "border-gray-200 hover:border-green-300"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-start">
                             <input
@@ -1149,7 +630,7 @@ export  function CheckoutPage() {
                 <div className="bg-white rounded-2xl shadow-lg p-6">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center space-x-2">
-                      <CreditCard className="w-6 h-6 text-green-600" />
+                      <Smartphone className="w-6 h-6 text-green-600" />
                       <h2 className="text-xl font-bold text-gray-900">Select Payment Method</h2>
                     </div>
                     <button
@@ -1167,11 +648,10 @@ export  function CheckoutPage() {
                       return (
                         <label
                           key={method.id}
-                          className={`block p-4 border-2 rounded-lg cursor-pointer transition ${
-                            selectedPaymentMethod === method.id
+                          className={`block p-4 border-2 rounded-lg cursor-pointer transition ${selectedPaymentMethod === method.id
                               ? "border-green-600 bg-green-50"
                               : "border-gray-200 hover:border-green-300"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-start">
                             <input
@@ -1220,13 +700,12 @@ export  function CheckoutPage() {
                 </button>
               </>
             )}
-
             {/* PAYMENT STEP */}
             {step === "payment" && (
               <div className="bg-white rounded-2xl shadow-lg p-6">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center space-x-2">
-                    <CreditCard className="w-6 h-6 text-green-600" />
+                    <Smartphone className="w-6 h-6 text-green-600" />
                     <h2 className="text-xl font-bold text-gray-900">Complete Payment</h2>
                   </div>
                   <button
@@ -1239,49 +718,15 @@ export  function CheckoutPage() {
                 </div>
 
                 {selectedPaymentMethod === "upi" && (
-                  <UPIPayment 
-                    onSuccess={handlePaymentSuccess} 
-                    total={priceBreakdown?.total || calculateSubtotal()} 
-                    addressId={selectedAddress}
-                  />
-                )}
-
-                {selectedPaymentMethod === "card" && clientSecret && (
-                  <Elements
-                    stripe={stripePromise}
-                    options={{
-                      clientSecret,
-                      appearance: { 
-                        theme: "stripe", 
-                        variables: { colorPrimary: "#16a34a" } 
-                      },
-                    }}
-                  >
-                    <PaymentForm
-                      clientSecret={clientSecret}
-                      paymentIntentId={paymentIntentId}
-                      addressId={selectedAddress}
-                      onSuccess={handlePaymentSuccess}
-                    />
-                  </Elements>
-                )}
-
-                {selectedPaymentMethod === "netbanking" && (
-                  <NetBankingPayment 
+                  <UPIPayment
                     onSuccess={handlePaymentSuccess}
-                    addressId={selectedAddress}
-                  />
-                )}
-
-                {selectedPaymentMethod === "wallet" && (
-                  <WalletPayment 
-                    onSuccess={handlePaymentSuccess}
+                    total={priceBreakdown?.total || calculateSubtotal()}
                     addressId={selectedAddress}
                   />
                 )}
 
                 {selectedPaymentMethod === "cod" && (
-                  <CODPayment 
+                  <CODPayment
                     onSuccess={handlePaymentSuccess}
                     addressId={selectedAddress}
                   />

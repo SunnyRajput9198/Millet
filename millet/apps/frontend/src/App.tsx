@@ -12,7 +12,6 @@ import SettingPage from "./pages/settingpage"
 import MyReviews from "./pages/Reviewpage"
 import ProductDetail from "./pages/productdetail"
 import Checkout from "./pages/checkout"
-import Test from "./pages/text"
 function App() {
   return (
     <Routes>
@@ -29,7 +28,6 @@ function App() {
       <Route path="/settings" element={<SettingPage />} />
       <Route path="/my-reviews" element={<MyReviews />} />
       <Route path="/checkout" element={<Checkout />} />
-      <Route path="/test" element={<Test />} />
     </Routes>
   )
 }

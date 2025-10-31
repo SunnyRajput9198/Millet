@@ -18,7 +18,9 @@ export const categoryAPI = {
   // Get all categories
   getAll: async (): Promise<Category[]> => {
     const response = await axios.get(`${API_URL}/categories`);
-    return response.data;
+     return Array.isArray(response.data)
+    ? response.data
+    : response.data.data || [];
   },
 
   // Get single category by ID or slug
