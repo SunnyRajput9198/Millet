@@ -15,19 +15,12 @@ app.use(cors({
    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'PUT', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow cross-origin resources
 }));
+
 app.use(compression());
-// In your app.ts/index.ts, BEFORE app.use(express.json())
-app.post(
-  "/api/v1/payments/webhook",
-  express.raw({ type: "application/json" }),
-  (req, res, next) => {
-    // Let the route handler process it
-    next();
-  }
-);
 app.use(express.json({ limit: '16kb' }));
 app.use(express.urlencoded({ extended: true, limit: '16kb' }));
 

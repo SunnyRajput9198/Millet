@@ -197,7 +197,6 @@ const handleSubmit = async () => {
     setTimeout(() => {
       resetForm();
       onClose();
-      window.location.reload();
     }, 2000);
   } catch (error: any) {
     setErrors({ submit: error.message || "Failed to add product" });

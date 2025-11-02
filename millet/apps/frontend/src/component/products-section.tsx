@@ -24,34 +24,60 @@ export function ProductsSection() {
 
   const INITIAL_DISPLAY_COUNT = 4;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        const [productsResponse, categoriesData] = await Promise.all([
-          productAPI.getAll(),
-          categoryAPI.getAll(),
-        ]);
+      console.log("🔍 Starting to fetch products...");
 
+      const [productsResponse, categoriesData] = await Promise.all([
+        selectedCategory 
+          ? productAPI.getByCategory(selectedCategory)
+          : productAPI.getAll(),
+        categoryAPI.getAll(),
+      ]);
+
+      console.log("✅ Products Response:", productsResponse);
+      console.log("✅ Categories Data:", categoriesData);
+      console.log("✅ Products Array:", productsResponse.data);
+      console.log("✅ Products Length:", productsResponse.data?.length);
+
+      // Make sure we have valid data
+      if (productsResponse && productsResponse.data) {
         setProducts(productsResponse.data);
-        setCategories(categoriesData);
-      } catch (err: any) {
-        console.error("Error fetching data:", err);
-        setError(err.response?.data?.error || "Failed to load products");
-      } finally {
-        setLoading(false);
+        console.log("✅ Products set successfully:", productsResponse.data.length);
+      } else {
+        console.warn("⚠️ No products data in response");
+        setProducts([]);
       }
-    };
 
+      if (categoriesData) {
+        setCategories(categoriesData);
+        console.log("✅ Categories set successfully:", categoriesData.length);
+      } else {
+        console.warn("⚠️ No categories data");
+        setCategories([]);
+      }
+    } catch (err: any) {
+      console.error("❌ Error fetching data:", err);
+      console.error("❌ Error details:", err.response?.data);
+      console.error("❌ Error message:", err.message);
+      setError(err.response?.data?.error || err.message || "Failed to load products");
+    } finally {
+      setLoading(false);
+      console.log("🏁 Fetch complete");
+    }
+  };
+
+  useEffect(() => {
     fetchData();
     checkAdminStatus();
   }, []);
 
   const checkAdminStatus = async () => {
     try {
-      const accessToken = localStorage.getItem('accessToken');
+      const accessToken = await getValidAccessToken();
       if (!accessToken) {
         setIsAdmin(false);
         return;
@@ -99,7 +125,6 @@ export function ProductsSection() {
   const handleAddToCart = async (e: React.MouseEvent, productId: string) => {
     e.stopPropagation();
 
-    // Check if user is logged in
     const accessToken = await getValidAccessToken();
     if (!accessToken) {
       navigate("/auth");
@@ -124,7 +149,6 @@ export function ProductsSection() {
       const data = await response.json();
 
       if (data.success) {
-        // Show success state
         setAddedToCart(productId);
         setTimeout(() => setAddedToCart(null), 2000);
       } else {
@@ -137,8 +161,21 @@ export function ProductsSection() {
       setAddingToCart(null);
     }
   };
- const displayedProducts = showAll ? products : products?.slice(0, INITIAL_DISPLAY_COUNT) ?? [];
-  const hasMoreProducts = (products?.length ?? 0) > INITIAL_DISPLAY_COUNT;
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    // Refetch products when modal closes after successful product addition
+    fetchData();
+  };
+
+  // Fixed logic: Show all products if showAll is true, otherwise show first INITIAL_DISPLAY_COUNT
+  const displayedProducts = !products || products.length === 0 
+    ? [] 
+    : showAll 
+      ? products 
+      : products.slice(0, INITIAL_DISPLAY_COUNT);
+  
+  const hasMoreProducts = products && products.length > INITIAL_DISPLAY_COUNT;
 
   if (loading) {
     return (
@@ -159,7 +196,7 @@ export function ProductsSection() {
           <div className="text-center">
             <p className="text-lg text-red-600">{error}</p>
             <Button
-              onClick={() => window.location.reload()}
+              onClick={() => fetchData()}
               className="mt-4 bg-[#2a9d8f] hover:bg-[#264653]"
             >
               Retry
@@ -371,7 +408,7 @@ export function ProductsSection() {
 
       <AddProductModal 
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleModalClose}
       />
     </section>
   );

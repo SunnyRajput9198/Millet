@@ -17,16 +17,30 @@ export interface Category {
 export const categoryAPI = {
   // Get all categories
   getAll: async (): Promise<Category[]> => {
-    const response = await axios.get(`${API_URL}/categories`);
-     return Array.isArray(response.data)
-    ? response.data
-    : response.data.data || [];
+    try {
+      const response = await axios.get(`${API_URL}/categories`);
+      console.log("📦 Categories Response:", response.data);
+      
+      // Handle different response formats
+      if (response.data.success && response.data.data) {
+        return response.data.data;
+      } else if (Array.isArray(response.data)) {
+        return response.data;
+      } else if (response.data.data) {
+        return response.data.data;
+      }
+      
+      return [];
+    } catch (error) {
+      console.error("❌ Category fetch error:", error);
+      return []; // Return empty array on error instead of throwing
+    }
   },
 
   // Get single category by ID or slug
   getOne: async (idOrSlug: string): Promise<Category> => {
     const response = await axios.get(`${API_URL}/categories/${idOrSlug}`);
-    return response.data;
+    return response.data.data || response.data;
   },
 
   // Create new category
@@ -37,7 +51,7 @@ export const categoryAPI = {
     image?: string;
   }): Promise<Category> => {
     const response = await axios.post(`${API_URL}/categories`, data);
-    return response.data;
+    return response.data.data || response.data;
   },
 
   // Update category
@@ -52,7 +66,7 @@ export const categoryAPI = {
     }
   ): Promise<Category> => {
     const response = await axios.patch(`${API_URL}/categories/${id}`, data);
-    return response.data;
+    return response.data.data || response.data;
   },
 
   // Delete (soft delete) category
