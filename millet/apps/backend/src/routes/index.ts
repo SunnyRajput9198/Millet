@@ -13,6 +13,9 @@ import shipmentRouter from './shipment/route';
 import settingRouter from './setting/route';
 import recentlyViewedRoute from './recently-viewed/route'
 import paymentRouter from './payment/route';
+import adminStatsRoutes from './admin/statsroute';
+import adminUsersRoutes from './admin/users';
+import adminOrdersRoutes from './admin/orders';
 
 const router = Router();
 
@@ -31,4 +34,9 @@ router.use('/coupons', couponRouter);
 router.use('/settings', settingRouter);
 router.use('/addresses', addressRouter);
 router.use('/payments', paymentRouter);
+// Admin routes
+router.use("/admin/stats", adminStatsRoutes);
+router.use("/admin/users", adminUsersRoutes);
+router.use("/admin/orders", adminOrdersRoutes);
+
 export default router;

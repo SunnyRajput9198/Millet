@@ -2,8 +2,20 @@
 
 import { motion } from "framer-motion"
 import { useEffect, useState } from "react"
+import { X, AlertTriangle, Loader } from "lucide-react"
 import AddCategoryModal from "./Addcategorymodel"
- import { getValidAccessToken } from '../utils/tokenRefresh'
+import { getValidAccessToken } from '../utils/tokenRefresh'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog"
+
 interface Category {
   id: string
   name: string
@@ -20,39 +32,40 @@ export function CategorySection() {
   const [showAll, setShowAll] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     fetchCategories()
     checkAdminStatus()
   }, [])
 
+  const checkAdminStatus = async () => {
+    try {
+      const accessToken = await getValidAccessToken()
+      
+      if (!accessToken) {
+        setIsAdmin(false)
+        return
+      }
 
-
-const checkAdminStatus = async () => {
-  try {
-    const accessToken = await getValidAccessToken()
-    
-    if (!accessToken) {
+      const response = await fetch("http://localhost:8000/api/v1/auth/me", {
+        headers: { "Authorization": `Bearer ${accessToken}` }
+      })
+      
+      const data = await response.json()
+      
+      if (data.success && data.data.role === "ADMIN") {
+        setIsAdmin(true)
+      } else {
+        setIsAdmin(false)
+      }
+    } catch (error) {
+      console.error("Error checking admin status:", error)
       setIsAdmin(false)
-      return
     }
-
-    const response = await fetch("http://localhost:8000/api/v1/auth/me", {
-      headers: { "Authorization": `Bearer ${accessToken}` }
-    })
-    
-    const data = await response.json()
-    
-    if (data.success && data.data.role === "ADMIN") {
-      setIsAdmin(true)
-    } else {
-      setIsAdmin(false)
-    }
-  } catch (error) {
-    console.error("Error checking admin status:", error)
-    setIsAdmin(false)
   }
-}
 
   const fetchCategories = async () => {
     try {
@@ -74,6 +87,50 @@ const checkAdminStatus = async () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleDeleteClick = (e: React.MouseEvent, category: Category) => {
+    e.stopPropagation()
+    setDeletingCategory(category)
+    setShowDeleteDialog(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deletingCategory) return
+
+    setIsDeleting(true)
+
+    try {
+      const accessToken = await getValidAccessToken()
+
+      const response = await fetch(`http://localhost:8000/api/v1/categories/${deletingCategory.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        // Remove category from local state
+        setCategories(categories.filter(c => c.id !== deletingCategory.id))
+        setShowDeleteDialog(false)
+        setDeletingCategory(null)
+      } else {
+        alert(data.message || "Failed to delete category")
+      }
+    } catch (err) {
+      console.error("Error deleting category:", err)
+      alert("Failed to delete category")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleCancelDelete = () => {
+    setShowDeleteDialog(false)
+    setDeletingCategory(null)
   }
 
   const fadeUp = {
@@ -155,6 +212,17 @@ const checkAdminStatus = async () => {
               viewport={{ once: true }}
               className="group relative rounded-3xl overflow-hidden bg-white shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
             >
+              {/* Delete Button - Only visible to admin */}
+              {isAdmin && (
+                <button
+                  onClick={(e) => handleDeleteClick(e, cat)}
+                  className="absolute top-3 right-3 z-10 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-lg transition-all duration-200 hover:scale-110 opacity-0 group-hover:opacity-100"
+                  aria-label="Delete category"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+
               <div className="overflow-hidden">
                 <img
                   src={cat.image || "/placeholder-category.jpg"}
@@ -243,9 +311,60 @@ const checkAdminStatus = async () => {
       {isAdmin && (
         <AddCategoryModal 
           isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => {
+            setIsModalOpen(false)
+            fetchCategories() // Refresh categories after adding
+          }}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="bg-red-100 p-2 rounded-full">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+              </div>
+              <AlertDialogTitle className="text-xl">Delete Category</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-base">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-gray-900">
+                "{deletingCategory?.name}"
+              </span>
+              ? This action cannot be undone and will permanently remove the category.
+              {deletingCategory?.description && (
+                <span className="block mt-2 text-sm text-gray-600">
+                  Note: Make sure there are no subcategories before deleting.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={handleCancelDelete}
+              disabled={isDeleting}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Category"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   )
 }

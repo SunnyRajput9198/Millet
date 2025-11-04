@@ -3,12 +3,21 @@ import { Badge } from "../components/ui/badge";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "../components/ui/card";
-import { Star, ShoppingCart, ArrowRight, Loader, Check } from "lucide-react";
+import { Star, ShoppingCart, ArrowRight, Loader, Check, X, AlertTriangle } from "lucide-react";
 import { productAPI, type Product } from "../api/products";
 import { categoryAPI, type Category } from "../api/categories";
 import { getValidAccessToken } from "../utils/tokenRefresh";
 import AddProductModal from "./Addmodelproduct";
-
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
 export function ProductsSection() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
@@ -21,6 +30,9 @@ export function ProductsSection() {
   const [showAll, setShowAll] = useState(false);
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
   const [addedToCart, setAddedToCart] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const INITIAL_DISPLAY_COUNT = 4;
 
@@ -32,7 +44,7 @@ export function ProductsSection() {
       console.log("🔍 Starting to fetch products...");
 
       const [productsResponse, categoriesData] = await Promise.all([
-        selectedCategory 
+        selectedCategory
           ? productAPI.getByCategory(selectedCategory)
           : productAPI.getAll(),
         categoryAPI.getAll(),
@@ -96,7 +108,49 @@ export function ProductsSection() {
       setIsAdmin(false);
     }
   };
+  const handleDeleteClick = (e: React.MouseEvent, product: Product) => {
+    e.stopPropagation();
+    setDeletingProduct(product);
+    setShowDeleteDialog(true);
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!deletingProduct) return;
+
+    setIsDeleting(true);
+
+    try {
+      const accessToken = await getValidAccessToken();
+
+      const response = await fetch(`http://localhost:8000/api/v1/products/${deletingProduct.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Remove product from local state
+        setProducts(products.filter(p => p.id !== deletingProduct.id));
+        setShowDeleteDialog(false);
+        setDeletingProduct(null);
+      } else {
+        alert(data.message || "Failed to delete product");
+      }
+    } catch (err) {
+      console.error("Error deleting product:", err);
+      alert("Failed to delete product");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteDialog(false);
+    setDeletingProduct(null);
+  };
   const handleCategoryFilter = async (categorySlug: string | null) => {
     try {
       setLoading(true);
@@ -133,7 +187,7 @@ export function ProductsSection() {
 
     try {
       setAddingToCart(productId);
-      
+
       const response = await fetch("http://localhost:8000/api/v1/cart/items", {
         method: "POST",
         headers: {
@@ -169,12 +223,12 @@ export function ProductsSection() {
   };
 
   // Fixed logic: Show all products if showAll is true, otherwise show first INITIAL_DISPLAY_COUNT
-  const displayedProducts = !products || products.length === 0 
-    ? [] 
-    : showAll 
-      ? products 
+  const displayedProducts = !products || products.length === 0
+    ? []
+    : showAll
+      ? products
       : products.slice(0, INITIAL_DISPLAY_COUNT);
-  
+
   const hasMoreProducts = products && products.length > INITIAL_DISPLAY_COUNT;
 
   if (loading) {
@@ -254,8 +308,17 @@ export function ProductsSection() {
             <Card
               key={product.id}
               onClick={() => handleProductClick(product.slug)}
-              className="group hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col cursor-pointer"
-            >
+              className="group hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col cursor-pointer relative"
+            >{/* Add this right after the Card opening tag, before the image div */}
+              {isAdmin && (
+                <button
+                  onClick={(e) => handleDeleteClick(e, product)}
+                 className="absolute top-2 right-2 z-10 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-lg transition-all duration-200 hover:scale-110 opacity-0 group-hover:opacity-100"
+                  aria-label="Delete product"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
               <div className="relative flex-shrink-0">
                 <img
                   src={product.image || "/placeholder.svg"}
@@ -264,11 +327,10 @@ export function ProductsSection() {
                 />
                 {product.badge && (
                   <Badge
-                    className={`absolute top-4 left-4 ${
-                      product.badge === "BESTSELLER"
-                        ? "bg-[#2a9d8f] text-white"
-                        : "bg-[#264653] text-white"
-                    }`}
+                    className={`absolute top-4 left-4 ${product.badge === "BESTSELLER"
+                      ? "bg-[#2a9d8f] text-white"
+                      : "bg-[#264653] text-white"
+                      }`}
                   >
                     {product.badge}
                   </Badge>
@@ -296,11 +358,10 @@ export function ProductsSection() {
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
-                        className={`w-4 h-4 ${
-                          i < Math.floor(product.rating)
-                            ? "fill-yellow-400 text-yellow-400"
-                            : "text-gray-300"
-                        }`}
+                        className={`w-4 h-4 ${i < Math.floor(product.rating)
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "text-gray-300"
+                          }`}
                       />
                     ))}
                   </div>
@@ -323,11 +384,10 @@ export function ProductsSection() {
                   <Button
                     size="sm"
                     onClick={(e) => handleAddToCart(e, product.id)}
-                    className={`${
-                      addedToCart === product.id
-                        ? "bg-green-600 hover:bg-green-700"
-                        : "bg-[#2a9d8f] hover:bg-[#264653]"
-                    } text-white transition-colors`}
+                    className={`${addedToCart === product.id
+                      ? "bg-green-600 hover:bg-green-700"
+                      : "bg-[#2a9d8f] hover:bg-[#264653]"
+                      } text-white transition-colors`}
                     disabled={!product.inStock || addingToCart === product.id}
                   >
                     {addingToCart === product.id ? (
@@ -349,7 +409,7 @@ export function ProductsSection() {
             </Card>
           ))}
 
-          <Card 
+          <Card
             className="group flex flex-col overflow-hidden rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer"
             onClick={() => {
               if (isAdmin) {
@@ -358,18 +418,17 @@ export function ProductsSection() {
             }}
           >
             <CardContent className="flex flex-col items-center justify-center p-8 flex-grow">
-              <div className={`flex items-center justify-center w-16 h-16 rounded-full ${
-                isAdmin 
-                  ? 'bg-gradient-to-br from-[#2a9d8f] to-[#264653]' 
-                  : 'bg-gradient-to-br from-[#F4C542] to-[#FFB74D]'
-              } text-white text-3xl font-bold mb-4 shadow-lg group-hover:scale-105 transition-transform duration-300`}>
+              <div className={`flex items-center justify-center w-16 h-16 rounded-full ${isAdmin
+                ? 'bg-gradient-to-br from-[#2a9d8f] to-[#264653]'
+                : 'bg-gradient-to-br from-[#F4C542] to-[#FFB74D]'
+                } text-white text-3xl font-bold mb-4 shadow-lg group-hover:scale-105 transition-transform duration-300`}>
                 +
               </div>
               <div className="text-[#264653] font-semibold text-lg mb-1">
                 {isAdmin ? 'Add New Product' : 'Coming Soon'}
               </div>
               <p className="text-[#39485C] mt-2 text-sm text-center max-w-xs">
-                {isAdmin 
+                {isAdmin
                   ? 'Click here to add a new product with images and details'
                   : 'More delicious snacks are on the way! Stay tuned for exciting new flavors.'
                 }
@@ -377,6 +436,7 @@ export function ProductsSection() {
             </CardContent>
           </Card>
         </div>
+        
 
         <div className="text-center mt-12">
           {!showAll && hasMoreProducts ? (
@@ -406,10 +466,52 @@ export function ProductsSection() {
         </div>
       </div>
 
-      <AddProductModal 
+      <AddProductModal
         isOpen={isModalOpen}
         onClose={handleModalClose}
       />
+<AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <div className="flex items-center gap-3 mb-2">
+        <div className="bg-red-100 p-2 rounded-full">
+          <AlertTriangle className="w-6 h-6 text-red-600" />
+        </div>
+        <AlertDialogTitle className="text-xl">Delete Product</AlertDialogTitle>
+      </div>
+      <AlertDialogDescription className="text-base">
+        Are you sure you want to delete{" "}
+        <span className="font-semibold text-[#264653]">
+          "{deletingProduct?.name}"
+        </span>
+        ? This action cannot be undone and will permanently remove the product
+        from your inventory.
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel
+        onClick={handleCancelDelete}
+        disabled={isDeleting}
+      >
+        Cancel
+      </AlertDialogCancel>
+      <AlertDialogAction
+        onClick={handleConfirmDelete}
+        disabled={isDeleting}
+        className="bg-red-600 hover:bg-red-700"
+      >
+        {isDeleting ? (
+          <>
+            <Loader className="w-4 h-4 mr-2 animate-spin" />
+            Deleting...
+          </>
+        ) : (
+          "Delete Product"
+        )}
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
     </section>
   );
 }
