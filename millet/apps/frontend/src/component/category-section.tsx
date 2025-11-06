@@ -1,10 +1,12 @@
 "use client"
 
+import type React from "react"
+
 import { motion } from "framer-motion"
 import { useEffect, useState } from "react"
-import { X, AlertTriangle, Loader } from "lucide-react"
+import { X, AlertTriangle, Loader, Leaf } from "lucide-react"
 import AddCategoryModal from "./Addcategorymodel"
-import { getValidAccessToken } from '../utils/tokenRefresh'
+import { getValidAccessToken } from "../utils/tokenRefresh"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,18 +46,18 @@ export function CategorySection() {
   const checkAdminStatus = async () => {
     try {
       const accessToken = await getValidAccessToken()
-      
+
       if (!accessToken) {
         setIsAdmin(false)
         return
       }
 
       const response = await fetch("http://localhost:8000/api/v1/auth/me", {
-        headers: { "Authorization": `Bearer ${accessToken}` }
+        headers: { Authorization: `Bearer ${accessToken}` },
       })
-      
+
       const data = await response.json()
-      
+
       if (data.success && data.data.role === "ADMIN") {
         setIsAdmin(true)
       } else {
@@ -70,13 +72,13 @@ export function CategorySection() {
   const fetchCategories = async () => {
     try {
       const response = await fetch("http://localhost:8000/api/v1/categories")
-      
+
       if (!response.ok) {
         throw new Error("Failed to fetch categories")
       }
 
       const result = await response.json()
-      
+
       if (result.success && result.data) {
         const parentCategories = result.data.filter((cat: any) => !cat.parentId)
         setCategories(parentCategories)
@@ -114,7 +116,7 @@ export function CategorySection() {
 
       if (data.success) {
         // Remove category from local state
-        setCategories(categories.filter(c => c.id !== deletingCategory.id))
+        setCategories(categories.filter((c) => c.id !== deletingCategory.id))
         setShowDeleteDialog(false)
         setDeletingCategory(null)
       } else {
@@ -151,17 +153,17 @@ export function CategorySection() {
 
   if (loading) {
     return (
-      <section className="py-20 bg-gradient-to-b from-white via-green-50/20 to-white">
+      <section className="py-24 bg-gradient-to-br from-emerald-50 via-amber-50 to-green-50">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <div className="animate-pulse">
-            <div className="h-10 bg-gray-200 rounded w-64 mx-auto mb-12"></div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+            <div className="h-12 bg-gradient-to-r from-green-200 to-emerald-200 rounded-lg w-72 mx-auto mb-16"></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-3xl shadow-lg p-6">
-                  <div className="h-56 bg-gray-200 rounded-2xl mb-4"></div>
-                  <div className="h-6 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-full mb-4"></div>
-                  <div className="h-10 bg-gray-200 rounded-full w-32 mx-auto"></div>
+                <div key={i} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-md p-8 border border-green-100">
+                  <div className="h-60 bg-gradient-to-b from-green-100 to-emerald-100 rounded-xl mb-6"></div>
+                  <div className="h-6 bg-green-150 rounded-lg w-2/3 mx-auto mb-3"></div>
+                  <div className="h-4 bg-green-100 rounded w-full mb-6"></div>
+                  <div className="h-11 bg-gradient-to-r from-green-200 to-emerald-200 rounded-full w-40 mx-auto"></div>
                 </div>
               ))}
             </div>
@@ -173,34 +175,53 @@ export function CategorySection() {
 
   if (error) {
     return (
-      <section className="py-20 bg-gradient-to-b from-white via-green-50/20 to-white">
+      <section className="py-24 bg-gradient-to-br from-emerald-50 via-amber-50 to-green-50">
         <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-red-600 text-lg">Error loading categories: {error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-4 px-6 py-2 bg-green-600 text-white rounded-full hover:bg-green-700"
-          >
-            Retry
-          </button>
+          <div className="inline-block bg-red-50 border border-red-200 rounded-xl p-8">
+            <p className="text-red-700 text-lg font-medium">Error loading categories: {error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-6 px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-medium shadow-md hover:shadow-lg"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       </section>
     )
   }
 
   return (
-    <section className="py-20 bg-gradient-to-b from-white via-green-50/20 to-white">
-      <div className="max-w-7xl mx-auto px-6">
-        <motion.h2
+    <section className="py-24 bg-gradient-to-br from-emerald-50 via-amber-50 to-green-50 relative overflow-hidden">
+      {/* Decorative leaf elements */}
+      <div className="absolute top-10 right-10 text-green-200 opacity-30 pointer-events-none">
+        <Leaf className="w-32 h-32 rotate-45" />
+      </div>
+      <div className="absolute bottom-20 left-10 text-amber-200 opacity-20 pointer-events-none">
+        <Leaf className="w-40 h-40 -rotate-12" />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
+        <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
           viewport={{ once: true }}
-          className="text-4xl font-bold text-center mb-12 text-gray-800"
+          className="text-center mb-4"
         >
-          Explore Our Categories
-        </motion.h2>
+          <div className="inline-flex items-center gap-2 bg-green-100 px-4 py-2 rounded-full mb-6 border border-green-200">
+            <Leaf className="w-4 h-4 text-green-700" />
+            <span className="text-sm font-semibold text-green-700">Organic Collections</span>
+          </div>
+          <h2 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-green-800 via-emerald-700 to-green-900 bg-clip-text text-transparent mb-4">
+            Explore Our Categories
+          </h2>
+          <p className="text-green-700 text-lg max-w-2xl mx-auto">
+            Discover nature&apos;s finest farm-fresh products carefully selected for quality and sustainability
+          </p>
+        </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-16">
           {displayedCategories.map((cat, i) => (
             <motion.div
               key={cat.id}
@@ -210,42 +231,48 @@ export function CategorySection() {
               // @ts-ignore
               variants={fadeUp}
               viewport={{ once: true }}
-              className="group relative rounded-3xl overflow-hidden bg-white shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+              className="group relative rounded-2xl overflow-hidden bg-white shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-3 border border-green-100 hover:border-green-300"
             >
               {/* Delete Button - Only visible to admin */}
               {isAdmin && (
                 <button
                   onClick={(e) => handleDeleteClick(e, cat)}
-                  className="absolute top-3 right-3 z-10 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-lg transition-all duration-200 hover:scale-110 opacity-0 group-hover:opacity-100"
+                  className="absolute top-4 right-4 z-10 bg-red-500 hover:bg-red-600 text-white rounded-full p-2.5 shadow-lg transition-all duration-200 hover:scale-110 opacity-0 group-hover:opacity-100 backdrop-blur-sm"
                   aria-label="Delete category"
                 >
                   <X className="w-4 h-4" />
                 </button>
               )}
 
-              <div className="overflow-hidden">
+              {/* Image Container with overlay */}
+              <div className="overflow-hidden relative h-64 bg-gradient-to-br from-green-100 to-emerald-100">
                 <img
                   src={cat.image || "/placeholder-category.jpg"}
                   alt={cat.name}
-                  className="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-700"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   onError={(e) => {
                     e.currentTarget.src = "/placeholder-category.jpg"
                   }}
                 />
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
-              <div className="p-6 text-center">
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+
+              {/* Content */}
+              <div className="p-8">
+                <h3 className="text-2xl font-bold text-green-900 mb-2 group-hover:text-green-700 transition-colors">
                   {cat.name}
                 </h3>
-                <p className="text-gray-600 text-sm mb-4">
-                  {cat.description || "Explore our collection"}
+                <p className="text-green-700 text-sm mb-6 leading-relaxed h-10 overflow-hidden">
+                  {cat.description || "Explore our premium collection of natural products"}
                 </p>
+
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-5 py-2 rounded-full bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition"
+                  className="w-full py-3 rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 text-white text-sm font-semibold hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-md hover:shadow-lg"
                 >
-                  Shop Now
+                  Shop Collection
                 </motion.button>
               </div>
             </motion.div>
@@ -261,17 +288,15 @@ export function CategorySection() {
               variants={fadeUp}
               viewport={{ once: true }}
               onClick={() => setIsModalOpen(true)}
-              className="group relative rounded-3xl overflow-hidden bg-white shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer hover:-translate-y-2"
+              className="group relative rounded-2xl overflow-hidden bg-white shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer hover:-translate-y-3 border-2 border-dashed border-green-300 hover:border-green-500"
             >
-              <div className="flex flex-col items-center justify-center p-12 h-full min-h-[400px]">
-                <div className="flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-green-500 to-green-700 text-white text-4xl font-bold mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <div className="flex flex-col items-center justify-center p-12 h-full min-h-[420px] hover:bg-green-50 transition-colors duration-300">
+                <div className="flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 text-white text-5xl font-bold mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:shadow-xl">
                   +
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Add New Category
-                </h3>
-                <p className="text-gray-600 text-sm text-center max-w-xs">
-                  Click here to add a new category with images and details
+                <h3 className="text-xl font-bold text-green-900 mb-2">Add New Category</h3>
+                <p className="text-green-700 text-sm text-center max-w-xs leading-relaxed">
+                  Create a new product category with images and detailed information
                 </p>
               </div>
             </motion.div>
@@ -283,13 +308,13 @@ export function CategorySection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5 }}
-            className="mt-12 text-center"
+            className="mt-16 text-center"
           >
             <motion.button
               onClick={() => setShowAll(!showAll)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-8 py-3 rounded-full bg-gradient-to-r from-green-600 to-green-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300"
+              className="px-10 py-4 rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold shadow-lg hover:shadow-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300"
             >
               {showAll ? (
                 <>
@@ -298,8 +323,7 @@ export function CategorySection() {
                 </>
               ) : (
                 <>
-                  View All Categories ({categories.length})
-                  <span className="ml-2">→</span>
+                  View All Categories ({categories.length})<span className="ml-2">→</span>
                 </>
               )}
             </motion.button>
@@ -309,7 +333,7 @@ export function CategorySection() {
 
       {/* Add Category Modal */}
       {isAdmin && (
-        <AddCategoryModal 
+        <AddCategoryModal
           isOpen={isModalOpen}
           onClose={() => {
             setIsModalOpen(false)
@@ -320,38 +344,37 @@ export function CategorySection() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="border-green-200 bg-white">
           <AlertDialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="bg-red-100 p-2 rounded-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-red-100 p-3 rounded-full">
                 <AlertTriangle className="w-6 h-6 text-red-600" />
               </div>
-              <AlertDialogTitle className="text-xl">Delete Category</AlertDialogTitle>
+              <AlertDialogTitle className="text-2xl text-green-900">Delete Category</AlertDialogTitle>
             </div>
-            <AlertDialogDescription className="text-base">
+            <AlertDialogDescription className="text-base text-green-800">
               Are you sure you want to delete{" "}
-              <span className="font-semibold text-gray-900">
-                "{deletingCategory?.name}"
-              </span>
-              ? This action cannot be undone and will permanently remove the category.
+              <span className="font-semibold text-green-900">"{deletingCategory?.name}"</span>? This action cannot be
+              undone and will permanently remove the category.
               {deletingCategory?.description && (
-                <span className="block mt-2 text-sm text-gray-600">
+                <span className="block mt-3 text-sm text-green-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
                   Note: Make sure there are no subcategories before deleting.
                 </span>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="gap-3">
             <AlertDialogCancel
               onClick={handleCancelDelete}
               disabled={isDeleting}
+              className="border-green-300 text-green-900 hover:bg-green-50"
             >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 text-white"
             >
               {isDeleting ? (
                 <>

@@ -1,5 +1,9 @@
+"use client"
+
+import type React from "react"
+
 import { useState, useEffect } from "react"
-import { MapPin, Plus, Edit2, Trash2, Home, Building, X, Save, Star } from "lucide-react"
+import { MapPin, Plus, Edit2, Trash2, Home, Building, X, Save, Star, Leaf } from "lucide-react"
 import { getValidAccessToken } from "../utils/tokenRefresh"
 
 interface Address {
@@ -50,7 +54,7 @@ export function AddressManagementPage() {
     country: "India",
     postalCode: "",
     isDefault: false,
-    type: "HOME"
+    type: "HOME",
   })
 
   useEffect(() => {
@@ -68,7 +72,7 @@ export function AddressManagementPage() {
       }
 
       const response = await fetch("http://localhost:8000/api/v1/addresses", {
-        headers: { Authorization: `Bearer ${accessToken}` }
+        headers: { Authorization: `Bearer ${accessToken}` },
       })
 
       const data = await response.json()
@@ -88,10 +92,10 @@ export function AddressManagementPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
-    
+
     setFormData({
       ...formData,
-      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value
+      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     })
     setError("")
   }
@@ -107,7 +111,7 @@ export function AddressManagementPage() {
       country: "India",
       postalCode: "",
       isDefault: false,
-      type: "HOME"
+      type: "HOME",
     })
     setShowForm(false)
     setEditingId(null)
@@ -116,13 +120,19 @@ export function AddressManagementPage() {
   }
 
   const handleSubmit = async () => {
-    if (!formData.name.trim() || !formData.phone.trim() || !formData.addressLine1.trim() || 
-        !formData.city.trim() || !formData.state.trim() || !formData.country.trim() || 
-        !formData.postalCode.trim()) {
+    if (
+      !formData.name.trim() ||
+      !formData.phone.trim() ||
+      !formData.addressLine1.trim() ||
+      !formData.city.trim() ||
+      !formData.state.trim() ||
+      !formData.country.trim() ||
+      !formData.postalCode.trim()
+    ) {
       setError("Please fill in all required fields")
       return
     }
-    
+
     try {
       setSubmitting(true)
       setError("")
@@ -135,7 +145,7 @@ export function AddressManagementPage() {
         return
       }
 
-      const url = editingId 
+      const url = editingId
         ? `http://localhost:8000/api/v1/addresses/${editingId}`
         : "http://localhost:8000/api/v1/addresses"
 
@@ -145,9 +155,9 @@ export function AddressManagementPage() {
         method,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`
+          Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       })
 
       const data = await response.json()
@@ -178,7 +188,7 @@ export function AddressManagementPage() {
       country: address.country,
       postalCode: address.postalCode,
       isDefault: address.isDefault,
-      type: address.type || "HOME"
+      type: address.type || "HOME",
     })
     setEditingId(address.id)
     setShowForm(true)
@@ -197,7 +207,7 @@ export function AddressManagementPage() {
 
       const response = await fetch(`http://localhost:8000/api/v1/addresses/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${accessToken}` }
+        headers: { Authorization: `Bearer ${accessToken}` },
       })
 
       const data = await response.json()
@@ -216,39 +226,46 @@ export function AddressManagementPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      <div className="min-h-screen bg-gradient-to-b from-amber-50 via-green-50 to-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white">
-      <div className="bg-gradient-to-r from-green-600 to-green-700 text-white py-8">
-        <div className="max-w-6xl mx-auto px-6">
+    <div className="min-h-screen bg-gradient-to-b from-amber-50 via-green-50 to-white">
+      <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 text-white py-12 relative overflow-hidden">
+        <div className="absolute top-0 right-0 opacity-10 text-white">
+          <Leaf className="w-40 h-40 rotate-45" />
+        </div>
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2">My Addresses</h1>
-              <p className="text-green-100">Manage your delivery addresses</p>
+              <div className="flex items-center space-x-3 mb-2">
+                <MapPin className="w-8 h-8" />
+                <h1 className="text-4xl font-bold">My Delivery Addresses</h1>
+              </div>
+              <p className="text-emerald-100 text-lg">Manage your farm-to-home delivery locations</p>
             </div>
-            <a
-              href="/profile"
-              className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition"
-            >
+            <a href="/profile" className="px-6 py-3 bg-white/20 hover:bg-white/30 rounded-lg transition font-medium">
               ← Back to Profile
             </a>
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-6 py-12">
         {success && (
-          <div className="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
-            {success}
+          <div className="mb-6 bg-gradient-to-r from-emerald-50 to-green-50 border-l-4 border-emerald-500 text-emerald-800 px-6 py-4 rounded-lg shadow-sm">
+            <div className="flex items-center space-x-2">
+              <Leaf className="w-5 h-5" />
+              <span>{success}</span>
+            </div>
           </div>
         )}
+
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+          <div className="mb-6 bg-gradient-to-r from-red-50 to-rose-50 border-l-4 border-red-500 text-red-800 px-6 py-4 rounded-lg shadow-sm">
             {error}
           </div>
         )}
@@ -256,154 +273,133 @@ export function AddressManagementPage() {
         {!showForm && (
           <button
             onClick={() => setShowForm(true)}
-            className="mb-6 flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+            className="mb-8 flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl hover:from-emerald-600 hover:to-green-700 transition shadow-lg hover:shadow-xl font-semibold text-lg"
           >
-            <Plus className="w-5 h-5" />
-            <span>Add New Address</span>
+            <Plus className="w-6 h-6" />
+            <span>Add New Delivery Address</span>
           </button>
         )}
 
         {showForm && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
-                {editingId ? "Edit Address" : "Add New Address"}
+          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-emerald-100">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-bold text-gray-900">
+                {editingId ? "Edit Your Address" : "Add New Delivery Address"}
               </h2>
-              <button
-                onClick={resetForm}
-                className="text-gray-400 hover:text-gray-600"
-              >
+              <button onClick={resetForm} className="p-2 text-gray-400 hover:text-gray-600 transition">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name *
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">Full Name *</label>
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border-2 border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-emerald-50/50"
                     placeholder="John Doe"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number *
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">Phone Number *</label>
                   <input
                     type="tel"
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border-2 border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-emerald-50/50"
                     placeholder="+91 9876543210"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Address Line 1 *
-                </label>
+                <label className="block text-sm font-semibold text-gray-800 mb-3">Address Line 1 *</label>
                 <input
                   type="text"
                   name="addressLine1"
                   value={formData.addressLine1}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-emerald-50/50"
                   placeholder="House No., Street Name"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Address Line 2 (Optional)
-                </label>
+                <label className="block text-sm font-semibold text-gray-800 mb-3">Address Line 2 (Optional)</label>
                 <input
                   type="text"
                   name="addressLine2"
                   value={formData.addressLine2}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-emerald-50/50"
                   placeholder="Apartment, Suite, Landmark"
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    City *
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">City *</label>
                   <input
                     type="text"
                     name="city"
                     value={formData.city}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border-2 border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-emerald-50/50"
                     placeholder="Mumbai"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    State *
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">State *</label>
                   <input
                     type="text"
                     name="state"
                     value={formData.state}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border-2 border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-emerald-50/50"
                     placeholder="Maharashtra"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Postal Code *
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">Postal Code *</label>
                   <input
                     type="text"
                     name="postalCode"
                     value={formData.postalCode}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border-2 border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-emerald-50/50"
                     placeholder="400001"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Country *
-                </label>
+                <label className="block text-sm font-semibold text-gray-800 mb-3">Country *</label>
                 <input
                   type="text"
                   name="country"
                   value={formData.country}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-emerald-50/50"
                   placeholder="India"
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Address Type
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">Address Type</label>
                   <select
                     name="type"
                     value={formData.type}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border-2 border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition bg-emerald-50/50"
                   >
                     <option value="HOME">Home</option>
                     <option value="WORK">Work</option>
@@ -411,32 +407,30 @@ export function AddressManagementPage() {
                   </select>
                 </div>
 
-                <div className="flex items-center pt-8">
+                <div className="flex items-center pt-9">
                   <input
                     type="checkbox"
                     name="isDefault"
                     checked={formData.isDefault}
                     onChange={handleInputChange}
-                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                    className="w-5 h-5 text-emerald-600 border-emerald-300 rounded focus:ring-emerald-500 cursor-pointer"
                   />
-                  <label className="ml-2 text-sm text-gray-700">
-                    Set as default address
-                  </label>
+                  <label className="ml-3 text-sm font-medium text-gray-700">Set as default delivery address</label>
                 </div>
               </div>
 
-              <div className="flex space-x-3 pt-4">
+              <div className="flex space-x-4 pt-6">
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg hover:from-emerald-600 hover:to-green-700 transition disabled:opacity-50 font-semibold"
                 >
-                  <Save className="w-4 h-4" />
+                  <Save className="w-5 h-5" />
                   <span>{submitting ? "Saving..." : editingId ? "Update Address" : "Save Address"}</span>
                 </button>
                 <button
                   onClick={resetForm}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
                 >
                   Cancel
                 </button>
@@ -446,75 +440,88 @@ export function AddressManagementPage() {
         )}
 
         {addresses.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-            <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No addresses saved</h3>
-            <p className="text-gray-600 mb-6">Add your first delivery address to get started</p>
+          <div className="bg-white rounded-2xl shadow-lg p-16 text-center border border-emerald-100">
+            <div className="flex justify-center mb-6">
+              <div className="p-4 bg-gradient-to-br from-emerald-50 to-green-50 rounded-full">
+                <MapPin className="w-16 h-16 text-emerald-600" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">No Delivery Addresses Yet</h3>
+            <p className="text-gray-600 mb-8 text-lg">
+              Add your first address to start receiving fresh, farm-sourced products
+            </p>
             <button
               onClick={() => setShowForm(true)}
-              className="inline-flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+              className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg hover:from-emerald-600 hover:to-green-700 transition shadow-lg font-semibold"
             >
               <Plus className="w-5 h-5" />
-              <span>Add Address</span>
+              <span>Add Your First Address</span>
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {addresses.map((address) => (
               <div
                 key={address.id}
-                className={`bg-white rounded-2xl shadow-lg p-6 relative ${
-                  address.isDefault ? "ring-2 ring-green-500" : ""
+                className={`bg-white rounded-2xl shadow-lg hover:shadow-xl transition p-8 relative border-2 ${
+                  address.isDefault
+                    ? "border-emerald-500 bg-gradient-to-br from-white to-emerald-50"
+                    : "border-gray-200"
                 }`}
               >
                 {address.isDefault && (
-                  <div className="absolute top-4 right-4 flex items-center space-x-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                    <Star className="w-3 h-3 fill-current" />
-                    <span>Default</span>
+                  <div className="absolute top-4 right-4 flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 rounded-full text-xs font-bold">
+                    <Star className="w-4 h-4 fill-current" />
+                    <span>Default Address</span>
                   </div>
                 )}
 
-                <div className="flex items-start space-x-4 mb-4">
-                  <div className="p-3 bg-green-100 rounded-lg">
+                <div className="flex items-start space-x-4 mb-6">
+                  <div className={`p-4 rounded-xl ${address.type === "WORK" ? "bg-amber-100" : "bg-emerald-100"}`}>
                     {address.type === "WORK" ? (
-                      <Building className="w-6 h-6 text-green-600" />
+                      <Building
+                        className={`w-7 h-7 ${address.type === "WORK" ? "text-amber-600" : "text-emerald-600"}`}
+                      />
                     ) : (
-                      <Home className="w-6 h-6 text-green-600" />
+                      <Home className={`w-7 h-7 ${address.type === "WORK" ? "text-amber-600" : "text-emerald-600"}`} />
                     )}
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <h3 className="text-lg font-bold text-gray-900">{address.name}</h3>
-                      <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <h3 className="text-xl font-bold text-gray-900">{address.name}</h3>
+                      <span className="px-3 py-1 bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 text-xs font-semibold rounded-full">
                         {address.type || "HOME"}
                       </span>
                     </div>
-                    <p className="text-gray-600 text-sm">{address.phone}</p>
+                    <p className="text-gray-600 font-medium flex items-center space-x-1">
+                      <span>📱</span>
+                      <span>{address.phone}</span>
+                    </p>
                   </div>
                 </div>
 
-                <div className="mb-4 text-gray-700 text-sm space-y-1">
-                  <p>{address.addressLine1}</p>
+                <div className="mb-6 text-gray-700 space-y-2 bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <p className="font-medium">{address.addressLine1}</p>
                   {address.addressLine2 && <p>{address.addressLine2}</p>}
-                  <p>
-                    {address.city}, {address.state} {address.postalCode}
+                  <p className="text-sm">
+                    {address.city}, {address.state} <span className="font-semibold">{address.postalCode}</span>
                   </p>
-                  <p>{address.country}</p>
+                  <p className="text-sm text-gray-600">{address.country}</p>
                 </div>
 
-                <div className="flex space-x-2">
+                <div className="flex space-x-3">
                   <button
                     onClick={() => handleEdit(address)}
-                    className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 border border-green-600 text-green-600 rounded-lg hover:bg-green-50 transition"
+                    className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 border-2 border-emerald-600 text-emerald-600 rounded-lg hover:bg-emerald-50 transition font-semibold"
                   >
-                    <Edit2 className="w-4 h-4" />
+                    <Edit2 className="w-5 h-5" />
                     <span>Edit</span>
                   </button>
                   <button
                     onClick={() => handleDelete(address.id)}
-                    className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition"
+                    className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 border-2 border-red-400 text-red-600 rounded-lg hover:bg-red-50 transition font-semibold"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-5 h-5" />
                     <span>Delete</span>
                   </button>
                 </div>

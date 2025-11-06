@@ -1,106 +1,130 @@
-import { Button } from "../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Badge } from "../components/ui/badge";
-import { useState } from "react";
-import { Package, Truck, MapPin, Calendar, ExternalLink, Loader, Search, CheckCircle, XCircle, Clock, AlertTriangle } from "lucide-react";
-import { shipmentAPI, type Shipment } from "../api/Shipment";
+"use client"
+
+import type React from "react"
+
+import { Button } from "../components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
+import { Badge } from "../components/ui/badge"
+import { useState } from "react"
+import {
+  Package,
+  Truck,
+  MapPin,
+  Calendar,
+  ExternalLink,
+  Loader,
+  Search,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertTriangle,
+  Leaf,
+} from "lucide-react"
+import { shipmentAPI, type Shipment } from "../api/Shipment"
 
 export function TrackShipmentPage() {
-  const [trackingNumber, setTrackingNumber] = useState("");
-  const [shipment, setShipment] = useState<Shipment | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [searched, setSearched] = useState(false);
+  const [trackingNumber, setTrackingNumber] = useState("")
+  const [shipment, setShipment] = useState<Shipment | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [searched, setSearched] = useState(false)
 
   const handleTrack = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+    e.preventDefault()
+
     if (!trackingNumber.trim()) {
-      setError("Please enter a tracking number");
-      return;
+      setError("Please enter a tracking number")
+      return
     }
 
-    setLoading(true);
-    setError(null);
-    setSearched(true);
+    setLoading(true)
+    setError(null)
+    setSearched(true)
 
     try {
-      const response = await shipmentAPI.trackByNumber(trackingNumber.trim());
-      setShipment(response.data as Shipment);
+      const response = await shipmentAPI.trackByNumber(trackingNumber.trim())
+      setShipment(response.data as Shipment)
     } catch (err: any) {
-      console.error("Error tracking shipment:", err);
-      setError(err.message || "Failed to track shipment");
-      setShipment(null);
+      console.error("Error tracking shipment:", err)
+      setError(err.message || "Failed to track shipment")
+      setShipment(null)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "DELIVERED":
-        return <CheckCircle className="w-6 h-6 text-green-600" />;
+        return <CheckCircle className="w-6 h-6 text-emerald-600" />
       case "OUT_FOR_DELIVERY":
-        return <Truck className="w-6 h-6 text-blue-600" />;
+        return <Truck className="w-6 h-6 text-teal-600" />
       case "IN_TRANSIT":
-        return <Package className="w-6 h-6 text-yellow-600" />;
+        return <Package className="w-6 h-6 text-amber-600" />
       case "PENDING":
-        return <Clock className="w-6 h-6 text-gray-600" />;
+        return <Clock className="w-6 h-6 text-emerald-500" />
       case "FAILED":
-        return <XCircle className="w-6 h-6 text-red-600" />;
+        return <XCircle className="w-6 h-6 text-red-600" />
       default:
-        return <Package className="w-6 h-6 text-gray-600" />;
+        return <Package className="w-6 h-6 text-emerald-600" />
     }
-  };
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "DELIVERED":
-        return "bg-green-100 text-green-800";
+        return "bg-emerald-100 text-emerald-800 border border-emerald-300"
       case "OUT_FOR_DELIVERY":
-        return "bg-blue-100 text-blue-800";
+        return "bg-teal-100 text-teal-800 border border-teal-300"
       case "IN_TRANSIT":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-amber-100 text-amber-800 border border-amber-300"
       case "PENDING":
-        return "bg-gray-100 text-gray-800";
+        return "bg-green-100 text-green-800 border border-green-300"
       case "FAILED":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800 border border-red-300"
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-slate-100 text-slate-800 border border-slate-300"
     }
-  };
+  }
 
   const formatDate = (date: Date | string | null | undefined) => {
-    if (!date) return "N/A";
+    if (!date) return "N/A"
     return new Date(date).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    });
-  };
+    })
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#d97706]/10 to-[#2a9d8f]/10 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 py-12">
       <div className="container mx-auto px-6 sm:px-12 lg:px-24">
         <div className="text-center mb-12">
-          <h1 className="font-playfair text-4xl lg:text-5xl font-bold text-[#264653] mb-4">
-            Track Your Shipment
-          </h1>
-          <p className="text-lg text-[#39485C] max-w-2xl mx-auto">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Leaf className="w-8 h-8 text-emerald-700" />
+            <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-emerald-700 via-green-700 to-teal-700 bg-clip-text text-transparent">
+              Track Your Shipment
+            </h1>
+            <Leaf className="w-8 h-8 text-teal-700" />
+          </div>
+          <p className="text-lg text-slate-700 max-w-2xl mx-auto font-medium">
             Enter your tracking number to see the latest updates on your order
           </p>
         </div>
 
-        <Card className="max-w-2xl mx-auto shadow-xl">
-          <CardContent className="p-8">
+        <Card className="max-w-2xl mx-auto shadow-xl border-emerald-200 hover:shadow-2xl transition-shadow">
+          <CardHeader className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-b-4 border-amber-400">
+            <div className="flex items-center gap-2">
+              <Package className="w-5 h-5" />
+              <CardTitle>Tracking Information</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-8 bg-white">
             <form onSubmit={handleTrack} className="space-y-6">
               <div>
-                <label
-                  htmlFor="trackingNumber"
-                  className="block text-sm font-medium text-[#264653] mb-2"
-                >
+                <label htmlFor="trackingNumber" className="block text-sm font-semibold text-emerald-900 mb-3">
                   Tracking Number
                 </label>
                 <div className="flex gap-3">
@@ -110,12 +134,12 @@ export function TrackShipmentPage() {
                     value={trackingNumber}
                     onChange={(e) => setTrackingNumber(e.target.value)}
                     placeholder="Enter tracking number"
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2a9d8f] focus:border-transparent outline-none transition-all"
+                    className="flex-1 px-4 py-3 border-2 border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-emerald-50 text-slate-800 placeholder-slate-500"
                   />
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="bg-[#2a9d8f] hover:bg-[#264653] px-8"
+                    className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-8 font-semibold shadow-lg hover:shadow-xl transition-all"
                   >
                     {loading ? (
                       <Loader className="w-5 h-5 animate-spin" />
@@ -130,9 +154,9 @@ export function TrackShipmentPage() {
               </div>
 
               {error && (
-                <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center gap-3 p-4 bg-red-50 border-2 border-red-300 rounded-lg">
                   <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                  <p className="text-red-800">{error}</p>
+                  <p className="text-red-800 font-medium">{error}</p>
                 </div>
               )}
             </form>
@@ -140,13 +164,11 @@ export function TrackShipmentPage() {
         </Card>
 
         {searched && !loading && !error && !shipment && (
-          <Card className="max-w-2xl mx-auto mt-8 shadow-xl">
-            <CardContent className="p-12 text-center">
-              <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-[#264653] mb-2">
-                No Shipment Found
-              </h3>
-              <p className="text-[#39485C]">
+          <Card className="max-w-2xl mx-auto mt-8 shadow-xl border-emerald-200">
+            <CardContent className="p-12 text-center bg-gradient-to-br from-emerald-50 to-teal-50">
+              <Package className="w-16 h-16 text-emerald-300 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-emerald-900 mb-2">No Shipment Found</h3>
+              <p className="text-slate-700">
                 We couldn't find a shipment with this tracking number. Please check and try again.
               </p>
             </CardContent>
@@ -155,92 +177,91 @@ export function TrackShipmentPage() {
 
         {shipment && (
           <div className="max-w-4xl mx-auto mt-8 space-y-6">
-            <Card className="shadow-xl">
-              <CardHeader className="bg-gradient-to-r from-[#2a9d8f] to-[#264653] text-white">
+            {/* Shipment Details Card */}
+            <Card className="shadow-2xl border-emerald-200 hover:shadow-3xl transition-shadow">
+              <CardHeader className="bg-gradient-to-r from-emerald-700 via-teal-600 to-emerald-600 text-white border-b-4 border-amber-400">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-2xl">Shipment Details</CardTitle>
-                  <Badge className={getStatusColor(shipment.status)}>
+                  <div className="flex items-center gap-3">
+                    <Truck className="w-6 h-6" />
+                    <CardTitle className="text-2xl">Shipment Details</CardTitle>
+                  </div>
+                  <Badge className={`${getStatusColor(shipment.status)} text-sm font-semibold px-4 py-2`}>
                     {shipment.status.replace(/_/g, " ")}
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="p-8">
+              <CardContent className="p-8 bg-white">
                 <div className="grid md:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3">
+                  {/* Left Column */}
+                  <div className="space-y-5">
+                    {/* Status */}
+                    <div className="flex items-start gap-4 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
                       {getStatusIcon(shipment.status)}
                       <div>
-                        <p className="text-sm text-gray-600">Status</p>
-                        <p className="font-semibold text-[#264653]">
-                          {shipment.status.replace(/_/g, " ")}
-                        </p>
+                        <p className="text-sm text-slate-600 font-semibold">Status</p>
+                        <p className="font-bold text-emerald-900">{shipment.status.replace(/_/g, " ")}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-3">
-                      <Truck className="w-6 h-6 text-[#2a9d8f]" />
+                    {/* Carrier */}
+                    <div className="flex items-start gap-4 p-4 bg-teal-50 rounded-lg border border-teal-200">
+                      <Truck className="w-6 h-6 text-teal-700 flex-shrink-0" />
                       <div>
-                        <p className="text-sm text-gray-600">Carrier</p>
-                        <p className="font-semibold text-[#264653]">
-                          {shipment.carrier}
-                        </p>
+                        <p className="text-sm text-slate-600 font-semibold">Carrier</p>
+                        <p className="font-bold text-teal-900">{shipment.carrier}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-3">
-                      <Package className="w-6 h-6 text-[#2a9d8f]" />
+                    {/* Tracking Number */}
+                    <div className="flex items-start gap-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                      <Package className="w-6 h-6 text-amber-700 flex-shrink-0" />
                       <div>
-                        <p className="text-sm text-gray-600">Tracking Number</p>
-                        <p className="font-semibold text-[#264653] font-mono">
-                          {shipment.trackingNumber}
-                        </p>
+                        <p className="text-sm text-slate-600 font-semibold">Tracking Number</p>
+                        <p className="font-bold text-amber-900 font-mono text-sm">{shipment.trackingNumber}</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <Calendar className="w-6 h-6 text-[#2a9d8f]" />
+                  {/* Right Column */}
+                  <div className="space-y-5">
+                    {/* Shipped Date */}
+                    <div className="flex items-start gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                      <Calendar className="w-6 h-6 text-green-700 flex-shrink-0" />
                       <div>
-                        <p className="text-sm text-gray-600">Shipped Date</p>
-                        <p className="font-semibold text-[#264653]">
-                          {formatDate(shipment.shippedAt)}
-                        </p>
+                        <p className="text-sm text-slate-600 font-semibold">Shipped Date</p>
+                        <p className="font-bold text-green-900">{formatDate(shipment.shippedAt)}</p>
                       </div>
                     </div>
 
+                    {/* Estimated Delivery */}
                     {shipment.estimatedDelivery && (
-                      <div className="flex items-start gap-3">
-                        <Clock className="w-6 h-6 text-[#2a9d8f]" />
+                      <div className="flex items-start gap-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                        <Clock className="w-6 h-6 text-indigo-700 flex-shrink-0" />
                         <div>
-                          <p className="text-sm text-gray-600">
-                            Estimated Delivery
-                          </p>
-                          <p className="font-semibold text-[#264653]">
-                            {formatDate(shipment.estimatedDelivery)}
-                          </p>
+                          <p className="text-sm text-slate-600 font-semibold">Estimated Delivery</p>
+                          <p className="font-bold text-indigo-900">{formatDate(shipment.estimatedDelivery)}</p>
                         </div>
                       </div>
                     )}
 
+                    {/* Delivered On */}
                     {shipment.deliveredAt && (
-                      <div className="flex items-start gap-3">
-                        <CheckCircle className="w-6 h-6 text-green-600" />
+                      <div className="flex items-start gap-4 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                        <CheckCircle className="w-6 h-6 text-emerald-700 flex-shrink-0" />
                         <div>
-                          <p className="text-sm text-gray-600">Delivered On</p>
-                          <p className="font-semibold text-[#264653]">
-                            {formatDate(shipment.deliveredAt)}
-                          </p>
+                          <p className="text-sm text-slate-600 font-semibold">Delivered On</p>
+                          <p className="font-bold text-emerald-900">{formatDate(shipment.deliveredAt)}</p>
                         </div>
                       </div>
                     )}
 
+                    {/* Carrier Link */}
                     {shipment.trackingUrl && (
                       <a
                         href={shipment.trackingUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-[#2a9d8f] hover:text-[#264653] font-medium transition-colors"
+                        className="inline-flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-semibold rounded-lg hover:from-teal-700 hover:to-emerald-700 transition-all shadow-md hover:shadow-lg"
                       >
                         View on Carrier Website
                         <ExternalLink className="w-4 h-4" />
@@ -252,54 +273,48 @@ export function TrackShipmentPage() {
             </Card>
 
             {shipment.order && (
-              <Card className="shadow-xl">
-                <CardHeader>
-                  <CardTitle>Order Information</CardTitle>
+              <Card className="shadow-2xl border-emerald-200">
+                <CardHeader className="bg-gradient-to-r from-emerald-600 to-green-600 text-white border-b-4 border-amber-400">
+                  <div className="flex items-center gap-2">
+                    <Package className="w-5 h-5" />
+                    <CardTitle className="text-xl">Order Information</CardTitle>
+                  </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-600">Order Number</p>
-                      <p className="font-semibold text-[#264653]">
-                        {shipment.order.orderNumber}
-                      </p>
+                <CardContent className="p-8 bg-white space-y-6">
+                  {/* Order Number and Status */}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                      <p className="text-sm text-slate-600 font-semibold mb-1">Order Number</p>
+                      <p className="font-bold text-emerald-900">{shipment.order.orderNumber}</p>
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Order Status</p>
-                      <Badge className="mt-1">
+                    <div className="p-4 bg-teal-50 rounded-lg border border-teal-200">
+                      <p className="text-sm text-slate-600 font-semibold mb-2">Order Status</p>
+                      <Badge className="bg-gradient-to-r from-teal-100 to-emerald-100 text-teal-900 font-semibold border border-teal-300">
                         {shipment.order.status}
                       </Badge>
                     </div>
                   </div>
 
+                  {/* Shipping Address */}
                   {shipment.order.shippingAddress && (
                     <div>
-                      <p className="text-sm text-gray-600 mb-2 flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
+                      <p className="text-sm text-slate-600 mb-3 flex items-center gap-2 font-semibold">
+                        <MapPin className="w-4 h-4 text-emerald-700" />
                         Shipping Address
                       </p>
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <p className="font-medium text-[#264653]">
-                          {shipment.order.shippingAddress.fullName}
-                        </p>
-                        <p className="text-sm text-gray-700 mt-1">
-                          {shipment.order.shippingAddress.addressLine1}
-                        </p>
+                      <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-5 rounded-lg border-2 border-emerald-200">
+                        <p className="font-bold text-emerald-900 mb-2">{shipment.order.shippingAddress.fullName}</p>
+                        <p className="text-sm text-slate-700">{shipment.order.shippingAddress.addressLine1}</p>
                         {shipment.order.shippingAddress.addressLine2 && (
-                          <p className="text-sm text-gray-700">
-                            {shipment.order.shippingAddress.addressLine2}
-                          </p>
+                          <p className="text-sm text-slate-700">{shipment.order.shippingAddress.addressLine2}</p>
                         )}
-                        <p className="text-sm text-gray-700">
-                          {shipment.order.shippingAddress.city},{" "}
-                          {shipment.order.shippingAddress.state}{" "}
+                        <p className="text-sm text-slate-700">
+                          {shipment.order.shippingAddress.city}, {shipment.order.shippingAddress.state}{" "}
                           {shipment.order.shippingAddress.postalCode}
                         </p>
-                        <p className="text-sm text-gray-700">
-                          {shipment.order.shippingAddress.country}
-                        </p>
+                        <p className="text-sm text-slate-700">{shipment.order.shippingAddress.country}</p>
                         {shipment.order.shippingAddress.phone && (
-                          <p className="text-sm text-gray-700 mt-2">
+                          <p className="text-sm text-slate-700 mt-2 font-semibold">
                             Phone: {shipment.order.shippingAddress.phone}
                           </p>
                         )}
@@ -307,35 +322,31 @@ export function TrackShipmentPage() {
                     </div>
                   )}
 
+                  {/* Order Items */}
                   {shipment.order.items && shipment.order.items.length > 0 && (
                     <div>
-                      <p className="text-sm text-gray-600 mb-3">
+                      <p className="text-sm text-slate-600 mb-4 font-semibold flex items-center gap-2">
+                        <Package className="w-4 h-4 text-emerald-700" />
                         Order Items ({shipment.order.items.length})
                       </p>
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {shipment.order.items.map((item: any) => (
                           <div
                             key={item.id}
-                            className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                            className="flex items-center gap-4 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg border-2 border-emerald-200 hover:shadow-md transition-shadow"
                           >
                             {item.product?.images?.[0] && (
                               <img
-                                src={item.product.images[0].url}
+                                src={item.product.images[0].url || "/placeholder.svg"}
                                 alt={item.product.name}
-                                className="w-16 h-16 object-cover rounded"
+                                className="w-16 h-16 object-cover rounded-lg border border-emerald-300"
                               />
                             )}
                             <div className="flex-1">
-                              <p className="font-medium text-[#264653]">
-                                {item.product?.name || "Product"}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                Quantity: {item.quantity}
-                              </p>
+                              <p className="font-bold text-emerald-900">{item.product?.name || "Product"}</p>
+                              <p className="text-sm text-slate-600 font-medium">Quantity: {item.quantity}</p>
                             </div>
-                            <p className="font-semibold text-[#264653]">
-                              ₹{item.price}
-                            </p>
+                            <p className="font-bold text-teal-900 text-lg">₹{item.price}</p>
                           </div>
                         ))}
                       </div>
@@ -348,5 +359,5 @@ export function TrackShipmentPage() {
         )}
       </div>
     </div>
-  );
+  )
 }
